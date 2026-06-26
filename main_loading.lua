@@ -286,60 +286,85 @@ local ok, err = pcall(function()
 		end
 	end)
 
-	local checkpoint = nil
-	local cpHolder = Instance.new("Frame")
-	cpHolder.Size = UDim2.new(1, 0, 0, 32)
-	cpHolder.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-	cpHolder.BorderSizePixel = 0
-	cpHolder.Parent = container
-	Instance.new("UICorner", cpHolder).CornerRadius = UDim.new(0, 6)
+	local checkpoints = {}
+	local cpCount = 0
 
-	local cpSave = Instance.new("TextButton")
-	cpSave.Size = UDim2.new(1, -155, 1, 0)
-	cpSave.Position = UDim2.new(0, 8, 0, 0)
-	cpSave.BackgroundTransparency = 1
-	cpSave.Text = "  Set Checkpoint"
-	cpSave.TextColor3 = Color3.fromRGB(200, 200, 220)
-	cpSave.TextSize = 13
-	cpSave.TextXAlignment = Enum.TextXAlignment.Left
-	cpSave.Font = Enum.Font.Gotham
-	cpSave.Parent = cpHolder
+	local cpFrame = Instance.new("Frame")
+	cpFrame.Size = UDim2.new(1, 0, 0, 64)
+	cpFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	cpFrame.BorderSizePixel = 0
+	cpFrame.Parent = container
+	Instance.new("UICorner", cpFrame).CornerRadius = UDim.new(0, 6)
 
-	local cpTp = Instance.new("TextButton")
-	cpTp.Size = UDim2.new(0, 60, 1, 0)
-	cpTp.Position = UDim2.new(1, -70, 0, 0)
-	cpTp.BackgroundTransparency = 1
-	cpTp.Text = "TP"
-	cpTp.TextColor3 = Color3.fromRGB(100, 200, 255)
-	cpTp.TextSize = 13
-	cpTp.Font = Enum.Font.GothamBold
-	cpTp.Parent = cpHolder
+	local cpLabel = Instance.new("TextLabel")
+	cpLabel.Size = UDim2.new(1, 0, 0, 20)
+	cpLabel.Position = UDim2.new(0, 8, 0, 4)
+	cpLabel.BackgroundTransparency = 1
+	cpLabel.Text = "  Checkpoints"
+	cpLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+	cpLabel.TextSize = 13
+	cpLabel.TextXAlignment = Enum.TextXAlignment.Left
+	cpLabel.Font = Enum.Font.Gotham
+	cpLabel.Parent = cpFrame
 
-	cpSave.MouseButton1Click:Connect(function()
+	local cpList = Instance.new("ScrollingFrame")
+	cpList.Size = UDim2.new(1, -16, 0, 32)
+	cpList.Position = UDim2.new(0, 8, 0, 28)
+	cpList.BackgroundTransparency = 1
+	cpList.BorderSizePixel = 0
+	cpList.ScrollBarThickness = 0
+	cpList.CanvasSize = UDim2.new(0, 0, 0, 0)
+	cpList.AutomaticCanvasSize = Enum.AutomaticSize.X
+	cpList.Parent = cpFrame
+	local cpLayout = Instance.new("UIListLayout")
+	cpLayout.FillDirection = Enum.FillDirection.Horizontal
+	cpLayout.Padding = UDim.new(0, 4)
+	cpLayout.Parent = cpList
+
+	local function addCP()
 		local char = player.Character
-		if char then
-			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-			if root then
-				checkpoint = root.Position
-				cpSave.Text = "  Checkpoint set!"
-				task.delay(2, function()
-					cpSave.Text = "  Set Checkpoint"
-				end)
-			end
-		end
-	end)
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+		if not root then return end
 
-	cpTp.MouseButton1Click:Connect(function()
-		if checkpoint then
-			local char = player.Character
-			if char then
-				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-				if root then
-					root.Position = checkpoint
+		cpCount = cpCount + 1
+		local pos = root.Position
+		checkpoints[cpCount] = pos
+
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(0, 28, 0, 28)
+		btn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+		btn.BorderSizePixel = 0
+		btn.Text = tostring(cpCount)
+		btn.TextColor3 = Color3.fromRGB(200, 200, 220)
+		btn.TextSize = 12
+		btn.Font = Enum.Font.GothamBold
+		btn.Parent = cpList
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+
+		btn.MouseButton1Click:Connect(function()
+			local c = player.Character
+			if c then
+				local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
+				if r then
+					r.Position = checkpoints[tonumber(btn.Text)]
 				end
 			end
-		end
-	end)
+		end)
+	end
+
+	local cpBtn = Instance.new("TextButton")
+	cpBtn.Size = UDim2.new(0, 60, 0, 28)
+	cpBtn.Position = UDim2.new(1, -68, 0, 28)
+	cpBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+	cpBtn.BorderSizePixel = 0
+	cpBtn.Text = "Save"
+	cpBtn.TextColor3 = Color3.fromRGB(160, 200, 160)
+	cpBtn.TextSize = 12
+	cpBtn.Font = Enum.Font.GothamBold
+	cpBtn.Parent = cpFrame
+	Instance.new("UICorner", cpBtn).CornerRadius = UDim.new(0, 4)
+	cpBtn.MouseButton1Click:Connect(addCP)
 end)
 
 if not ok then
