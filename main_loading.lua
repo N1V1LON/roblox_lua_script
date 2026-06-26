@@ -1,6 +1,4 @@
 local BASE = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/"
-
-local HttpGet = game:HttpGet
 local Player = game:GetService("Players").LocalPlayer
 
 local N1V1LON = {
@@ -13,9 +11,15 @@ local N1V1LON = {
 
 getgenv().N1V1LON = N1V1LON
 
-local guiCode = HttpGet(BASE .. "gui.lua", true)
-if guiCode then
-	loadstring(guiCode)()
+local ok1, err1 = pcall(function()
+	local guiCode = game:HttpGet(BASE .. "gui.lua", true)
+	if guiCode then
+		loadstring(guiCode)()
+	end
+end)
+
+if not ok1 then
+	warn("[N1V1LON] gui.lua error: " .. tostring(err1))
 end
 
 local Scripts = {
@@ -25,7 +29,7 @@ local Scripts = {
 
 for _, name in ipairs(Scripts) do
 	pcall(function()
-		local code = HttpGet(BASE .. name, true)
+		local code = game:HttpGet(BASE .. name, true)
 		if code then
 			loadstring(code)()
 		end
