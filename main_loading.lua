@@ -16,8 +16,9 @@ local ok, err = pcall(function()
 
 	local icon = Instance.new("TextButton")
 	icon.Name = "Icon"
-icon.Size = UDim2.new(0, 64, 0, 64)
-icon.Position = UDim2.new(1, -84, 0, 20)
+icon.Size = UDim2.new(0, 48, 0, 48)
+icon.Position = UDim2.new(1, -68, 0, 20)
+icon.TextSize = 28
 	icon.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 	icon.BorderSizePixel = 0
 	icon.Text = "N"
