@@ -232,57 +232,33 @@ local ok, err = pcall(function()
 		addLog("Log collected (" .. #dataLines .. " lines)")
 
 		local saved = false
-		local sent = false
+		local savePath = ""
 
-		local okW, errW = pcall(function()
-			writefile("logsave/log_save.txt", fullText)
-			saved = true
-			addLog("Saved to logsave/log_save.txt")
-		end)
-		if not okW then
-			local okW2, errW2 = pcall(function()
-				writefile("N1V1LON_log_save.txt", fullText)
-				saved = true
-				addLog("Saved to N1V1LON_log_save.txt")
-			end)
-			if not okW2 then
-				addLog("writefile not available: " .. tostring(errW2))
+		local attempts = {
+			"logsave/log_save.txt",
+			"N1V1LON_log_save.txt",
+			"../logsave/log_save.txt",
+			"/logsave/log_save.txt",
+		}
+		for _, path in ipairs(attempts) do
+			if not saved then
+				local okW = pcall(function()
+					writefile(path, fullText)
+					saved = true
+					savePath = path
+				end)
 			end
 		end
-
-		local okH, errH = pcall(function()
-			local http = syn and syn.request or request or http_request
-			if http then
-				http({
-					Url = "https://api.github.com/gists",
-					Method = "POST",
-					Headers = {
-						["Content-Type"] = "application/json",
-					},
-					Body = game:GetService("HttpService"):JSONEncode({
-						description = "N1V1LON Debug Log",
-						public = false,
-						files = {
-							["log_save.txt"] = {
-								content = fullText,
-							},
-						},
-					}),
-				})
-				sent = true
-				addLog("Sent to GitHub Gist")
-			else
-				addLog("HTTP request not available")
-			end
-		end)
-		if not okH then
-			addLog("HTTP failed: " .. tostring(errH))
+		if saved then
+			addLog("Saved to " .. savePath)
+			warn("N1V1LON: log saved to " .. savePath)
+		else
+			warn("N1V1LON: writefile not available, log printed below")
 		end
 
-		warn("=== N1V1LON LOG ===")
+		warn("=== N1V1LON LOG (" .. tostring(saved) .. ") ===")
 		warn(fullText)
 		warn("=== END LOG ===")
-		warn("Saved: " .. tostring(saved) .. ", Gist: " .. tostring(sent))
 	end)
 end)
 
