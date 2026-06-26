@@ -1,7 +1,6 @@
 local uis = game:GetService("UserInputService")
 local rs = game:GetService("RunService")
 
--- Cleanup old event connections on re-run
 _G.N1V1LON = _G.N1V1LON or {}
 if _G.N1V1LON.cleanup then
 	for _, fn in ipairs(_G.N1V1LON.cleanup) do
@@ -12,29 +11,13 @@ _G.N1V1LON.cleanup = {}
 
 local ok, err = pcall(function()
 	local player = game:GetService("Players").LocalPlayer
-	if not player then
-		warn("N1V1LON: No player")
-		return
-	end
+	if not player then return end
 
 	local pg = player:WaitForChild("PlayerGui", 10)
-	if not pg then
-		warn("N1V1LON: No PlayerGui")
-		return
-	end
+	if not pg then return end
 
 	local existing = pg:FindFirstChild("N1V1LON")
-	if existing then
-		existing:Destroy()
-	end
-
-	local markerFolder = workspace:FindFirstChild("N1V1LON_Markers")
-	if markerFolder then
-		markerFolder:Destroy()
-	end
-	markerFolder = Instance.new("Folder")
-	markerFolder.Name = "N1V1LON_Markers"
-	markerFolder.Parent = workspace
+	if existing then existing:Destroy() end
 
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "N1V1LON"
@@ -57,8 +40,8 @@ local ok, err = pcall(function()
 
 	local menu = Instance.new("Frame")
 	menu.Name = "Menu"
-	menu.Size = UDim2.new(0, 300, 0, 250)
-	menu.Position = UDim2.new(0.5, -150, 0.5, -125)
+	menu.Size = UDim2.new(0, 300, 0, 300)
+	menu.Position = UDim2.new(0.5, -150, 0.5, -150)
 	menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 	menu.BorderSizePixel = 0
 	menu.Visible = false
@@ -76,7 +59,7 @@ local ok, err = pcall(function()
 	version.Size = UDim2.new(0, 100, 1, 0)
 	version.Position = UDim2.new(0, 8, 0, 0)
 	version.BackgroundTransparency = 1
-	version.Text = "v26.1.5.8 Beta"
+	version.Text = "v26.2.1.0 Realse"
 	version.TextColor3 = Color3.fromRGB(120, 120, 160)
 	version.TextSize = 10
 	version.TextXAlignment = Enum.TextXAlignment.Left
@@ -87,7 +70,7 @@ local ok, err = pcall(function()
 	title.Size = UDim2.new(0, 140, 1, 0)
 	title.Position = UDim2.new(0, 110, 0, 0)
 	title.BackgroundTransparency = 1
-	title.Text = "N1V1LON v26.1.5.8 Beta"
+	title.Text = "N1V1LON v26.2.1.0 Realse"
 	title.TextColor3 = Color3.fromRGB(220, 220, 255)
 	title.TextSize = 11
 	title.TextXAlignment = Enum.TextXAlignment.Left
@@ -136,83 +119,10 @@ local ok, err = pcall(function()
 
 	icon.MouseButton1Click:Connect(function()
 		menu.Visible = not menu.Visible
-		if menu.Visible then
-			toggleBtn.Text = "<"
-		end
+		if menu.Visible then toggleBtn.Text = "<" end
 	end)
 
-	local function createButton(text, callback)
-		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(1, 0, 0, 32)
-		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-		btn.BorderSizePixel = 0
-		btn.Text = "  " .. text
-		btn.TextColor3 = Color3.fromRGB(200, 200, 220)
-		btn.TextSize = 13
-		btn.TextXAlignment = Enum.TextXAlignment.Left
-		btn.Font = Enum.Font.Gotham
-		btn.Parent = container
-		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-
-		local status = Instance.new("TextLabel")
-		status.Size = UDim2.new(0, 50, 1, 0)
-		status.Position = UDim2.new(1, -55, 0, 0)
-		status.BackgroundTransparency = 1
-		status.Text = "OFF"
-		status.TextColor3 = Color3.fromRGB(140, 60, 60)
-		status.TextSize = 12
-		status.Font = Enum.Font.GothamBold
-		status.Parent = btn
-
-		btn.MouseButton1Click:Connect(function()
-			callback(status)
-		end)
-	end
-
-	local infJumpOn = false
-	local infJumpConn = nil
-	local jumpReqConn = nil
-
-	createButton("Infinite Jump", function(status)
-		infJumpOn = not infJumpOn
-		if infJumpOn then
-			local function apply(char)
-				local hum = char:FindFirstChildOfClass("Humanoid")
-				if hum then
-					hum.UseJumpPower = false
-				end
-			end
-			local char = player.Character
-			if char then apply(char) end
-			infJumpConn = player.CharacterAdded:Connect(apply)
-			jumpReqConn = uis.JumpRequest:Connect(function()
-				if infJumpOn then
-					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-					if hum then
-						hum:ChangeState(Enum.HumanoidStateType.Jumping)
-					end
-				end
-			end)
-			table.insert(_G.N1V1LON.cleanup, function()
-				if jumpReqConn then jumpReqConn:Disconnect() end
-				if infJumpConn then infJumpConn:Disconnect() end
-			end)
-			status.Text = "ON"
-			status.TextColor3 = Color3.fromRGB(60, 200, 120)
-		else
-			if infJumpConn then
-				infJumpConn:Disconnect()
-				infJumpConn = nil
-			end
-			if jumpReqConn then
-				jumpReqConn:Disconnect()
-				jumpReqConn = nil
-			end
-			status.Text = "OFF"
-			status.TextColor3 = Color3.fromRGB(140, 60, 60)
-		end
-	end)
-
+	-- Speed
 	local speedOn = false
 	local speedVal = 32
 	local speedHeartbeat = nil
@@ -287,9 +197,7 @@ local ok, err = pcall(function()
 	local function applySpeed()
 		if not speedOn then return end
 		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if hum then
-			hum.WalkSpeed = speedVal
-		end
+		if hum then hum.WalkSpeed = speedVal end
 	end
 
 	spdStatus.MouseButton1Click:Connect(function()
@@ -313,6 +221,129 @@ local ok, err = pcall(function()
 		end
 	end)
 
+	-- Infinite Jump
+	local infJumpOn = false
+	local infJumpConn = nil
+	local jumpReqConn = nil
+
+	local infBtn = Instance.new("TextButton")
+	infBtn.Size = UDim2.new(1, 0, 0, 32)
+	infBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	infBtn.BorderSizePixel = 0
+	infBtn.Text = "  Infinite Jump"
+	infBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+	infBtn.TextSize = 13
+	infBtn.TextXAlignment = Enum.TextXAlignment.Left
+	infBtn.Font = Enum.Font.Gotham
+	infBtn.Parent = container
+	Instance.new("UICorner", infBtn).CornerRadius = UDim.new(0, 6)
+
+	local infStatus = Instance.new("TextLabel")
+	infStatus.Size = UDim2.new(0, 50, 1, 0)
+	infStatus.Position = UDim2.new(1, -55, 0, 0)
+	infStatus.BackgroundTransparency = 1
+	infStatus.Text = "OFF"
+	infStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
+	infStatus.TextSize = 12
+	infStatus.Font = Enum.Font.GothamBold
+	infStatus.Parent = infBtn
+
+	infBtn.MouseButton1Click:Connect(function()
+		infJumpOn = not infJumpOn
+		if infJumpOn then
+			local function apply(char)
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if hum then hum.UseJumpPower = false end
+			end
+			local char = player.Character
+			if char then apply(char) end
+			infJumpConn = player.CharacterAdded:Connect(apply)
+			jumpReqConn = uis.JumpRequest:Connect(function()
+				if infJumpOn then
+					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+					if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+				end
+			end)
+			table.insert(_G.N1V1LON.cleanup, function()
+				if jumpReqConn then jumpReqConn:Disconnect() end
+				if infJumpConn then infJumpConn:Disconnect() end
+			end)
+			infStatus.Text = "ON"
+			infStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
+		else
+			if infJumpConn then infJumpConn:Disconnect(); infJumpConn = nil end
+			if jumpReqConn then jumpReqConn:Disconnect(); jumpReqConn = nil end
+			infStatus.Text = "OFF"
+			infStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
+		end
+	end)
+
+	-- Auto Attack
+	local aaOn = false
+
+	local aaBtn = Instance.new("TextButton")
+	aaBtn.Size = UDim2.new(1, 0, 0, 32)
+	aaBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	aaBtn.BorderSizePixel = 0
+	aaBtn.Text = "  Auto Attack"
+	aaBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+	aaBtn.TextSize = 13
+	aaBtn.TextXAlignment = Enum.TextXAlignment.Left
+	aaBtn.Font = Enum.Font.Gotham
+	aaBtn.Parent = container
+	Instance.new("UICorner", aaBtn).CornerRadius = UDim.new(0, 6)
+
+	local aaStatus = Instance.new("TextLabel")
+	aaStatus.Size = UDim2.new(0, 50, 1, 0)
+	aaStatus.Position = UDim2.new(1, -55, 0, 0)
+	aaStatus.BackgroundTransparency = 1
+	aaStatus.Text = "OFF"
+	aaStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
+	aaStatus.TextSize = 12
+	aaStatus.Font = Enum.Font.GothamBold
+	aaStatus.Parent = aaBtn
+
+	aaBtn.MouseButton1Click:Connect(function()
+		aaOn = not aaOn
+		if aaOn then
+			aaStatus.Text = "ON"
+			aaStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
+			task.spawn(function()
+				while aaOn do
+					local char = player.Character
+					if char then
+						local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+						if root then
+							local pos = root.Position
+							for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+								if p ~= player then
+									local c = p.Character
+									if c then
+										local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
+										local h = c:FindFirstChildOfClass("Humanoid")
+										if r and h and h.Health > 0 then
+											if (r.Position - pos).Magnitude < 30 then
+												local ok = pcall(function() h:TakeDamage(5) end)
+												if not ok then
+													pcall(function() h.Health = h.Health - 5 end)
+												end
+											end
+										end
+									end
+								end
+							end
+						end
+					end
+					task.wait(0.1)
+				end
+			end)
+		else
+			aaStatus.Text = "OFF"
+			aaStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
+		end
+	end)
+
+	-- Checkpoints
 	local checkpoints = {}
 
 	local cpFrame = Instance.new("Frame")
@@ -368,7 +399,6 @@ local ok, err = pcall(function()
 		if not char then return end
 		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 		if not root then return end
-
 		local pos = root.Position
 		local id = #checkpoints + 1
 
@@ -398,27 +428,19 @@ local ok, err = pcall(function()
 				task.delay(0.6, function()
 					row:Destroy()
 					for i, e in ipairs(checkpoints) do
-						if e == entry then
-							table.remove(checkpoints, i)
-							break
-						end
+						if e == entry then table.remove(checkpoints, i); break end
 					end
 				end)
 			end)
 		end)
 
 		row.MouseButton1Up:Connect(function()
-			if holdTask then
-				task.cancel(holdTask)
-				holdTask = nil
-			end
+			if holdTask then task.cancel(holdTask); holdTask = nil end
 			if not held then
 				local c = player.Character
 				if c then
 					local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-					if r then
-						r.Position = entry.pos
-					end
+					if r then r.Position = entry.pos end
 				end
 			end
 		end)

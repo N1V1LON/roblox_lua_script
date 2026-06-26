@@ -1,7 +1,7 @@
 -- N1V1LON test loader
 -- Загружает виджеты из scripts/ через loadstring
 
-local baseUrl = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/scripts/"
+local baseUrl = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/scripts_beta/"
 
 local widgets = {
 	"widget_speed.lua",
