@@ -153,6 +153,7 @@ local ok, err = pcall(function()
 	local infJumpConn = nil
 	local jumpReqConn = nil
 	local uis = game:GetService("UserInputService")
+	local rs = game:GetService("RunService")
 
 	createButton("Infinite Jump", function(status)
 		infJumpOn = not infJumpOn
@@ -192,7 +193,7 @@ local ok, err = pcall(function()
 
 	local speedOn = false
 	local speedVal = 32
-	local speedConn = nil
+	local speedHeartbeat = nil
 
 	local spdBtn = Instance.new("Frame")
 	spdBtn.Size = UDim2.new(1, 0, 0, 48)
@@ -249,27 +250,37 @@ local ok, err = pcall(function()
 	spdFill.Parent = spdBg
 	Instance.new("UICorner", spdFill).CornerRadius = UDim.new(0, 3)
 
-	spdStatus.MouseButton1Click:Connect(function()
-		speedOn = not speedOn
-		if speedOn then
-			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-			if hum then hum.WalkSpeed = speedVal end
-			speedConn = player.CharacterAdded:Connect(function(c)
-				local h = c:WaitForChild("Humanoid")
-				h.WalkSpeed = speedVal
-			end)
+	local function applySpeed()
+		if not speedOn then return end
+		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if hum and hum.WalkSpeed ~= speedVal then
+			hum.WalkSpeed = speedVal
+		end
+	end
+
+	local function toggleSpeed(on)
+		speedOn = on
+		if on then
+			applySpeed()
+			if not speedHeartbeat then
+				speedHeartbeat = rs.Heartbeat:Connect(applySpeed)
+			end
 			spdStatus.Text = "ON"
 			spdStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
 		else
+			if speedHeartbeat then
+				speedHeartbeat:Disconnect()
+				speedHeartbeat = nil
+			end
 			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 			if hum then hum.WalkSpeed = 16 end
-			if speedConn then
-				speedConn:Disconnect()
-				speedConn = nil
-			end
 			spdStatus.Text = "OFF"
 			spdStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
 		end
+	end
+
+	spdStatus.MouseButton1Click:Connect(function()
+		toggleSpeed(not speedOn)
 	end)
 
 	spdBg.MouseButton1Down:Connect(function(x)
@@ -280,8 +291,7 @@ local ok, err = pcall(function()
 			spdVal.Text = tostring(speedVal)
 			spdFill.Size = UDim2.new(frac, 0, 1, 0)
 			if speedOn then
-				local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-				if hum then hum.WalkSpeed = speedVal end
+				applySpeed()
 			end
 		end
 	end)
