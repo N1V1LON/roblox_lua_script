@@ -6,6 +6,9 @@
       "$className": "ServerScriptService",
       "Main": {
         "$path": "src/main.server.lua"
+      },
+      "Loader": {
+        "$path": "main_loading.lua"
       }
     }
   }
