@@ -1,19 +1,41 @@
-rconsolecreate()
-rconsolesettitle("N1V1LON")
-rconsoleclear()
+local ok, err = pcall(function()
+	rconsolecreate()
+	rconsolesettitle("N1V1LON")
+	rconsoleclear()
+end)
 
-rconsoleprint("=== N1V1LON ===\n")
-rconsoleprint("[INFO] Starting...\n")
+local log = function(msg)
+	if ok then
+		rconsoleprint(msg .. "\n")
+	else
+		print(msg)
+	end
+end
 
-local env = getgenv()
+log("=== N1V1LON ===")
+log("[INFO] Starting...")
+
+local env = getgenv and getgenv() or {}
 env.N1V1LON = {}
 
 local player = game:GetService("Players").LocalPlayer
+if not player then
+	log("[ERROR] Player not found")
+	return
+end
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "N1V1LON"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+
+local success, err = pcall(function()
+	gui.Parent = player:WaitForChild("PlayerGui", 10)
+end)
+
+if not success then
+	log("[ERROR] PlayerGui not found: " .. tostring(err))
+	gui.Parent = game:GetService("CoreGui")
+end
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 450, 0, 350)
@@ -81,4 +103,4 @@ uiList.Padding = UDim.new(0, 6)
 uiList.SortOrder = Enum.SortOrder.LayoutOrder
 uiList.Parent = container
 
-rconsoleprint("[OK] Loaded\n")
+log("[OK] Loaded")
