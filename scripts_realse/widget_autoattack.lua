@@ -24,22 +24,6 @@ return function(container, player, uis, rs)
 	status.Font = Enum.Font.GothamBold
 	status.Parent = btn
 
-	local rangeLbl = Instance.new("TextButton")
-	rangeLbl.Size = UDim2.new(0, 40, 1, 0)
-	rangeLbl.Position = UDim2.new(1, -100, 0, 0)
-	rangeLbl.BackgroundTransparency = 1
-	rangeLbl.Text = tostring(aaRange)
-	rangeLbl.TextColor3 = Color3.fromRGB(160, 200, 160)
-	rangeLbl.TextSize = 12
-	rangeLbl.Font = Enum.Font.GothamBold
-	rangeLbl.Parent = btn
-
-	rangeLbl.MouseButton1Click:Connect(function()
-		aaRange = aaRange + 5
-		if aaRange > 100 then aaRange = 10 end
-		rangeLbl.Text = tostring(aaRange)
-	end)
-
 	btn.MouseButton1Click:Connect(function()
 		aaOn = not aaOn
 		if aaOn then
@@ -60,10 +44,7 @@ return function(container, player, uis, rs)
 										local h = c:FindFirstChildOfClass("Humanoid")
 										if r and h and h.Health > 0 then
 											if (r.Position - pos).Magnitude < aaRange then
-												local ok = pcall(function() h:TakeDamage(5) end)
-												if not ok then
-													pcall(function() h.Health = h.Health - 5 end)
-												end
+												pcall(function() h:TakeDamage(5) end)
 											end
 										end
 									end

@@ -1,4 +1,5 @@
 return function(container, player, uis, rs)
+	warn("[N1V1LON DEBUG] Infinite Jump widget loaded")
 	local infJumpOn = false
 	local infJumpConn = nil
 	local jumpReqConn = nil
@@ -27,10 +28,14 @@ return function(container, player, uis, rs)
 
 	btn.MouseButton1Click:Connect(function()
 		infJumpOn = not infJumpOn
+		warn("[N1V1LON DEBUG] Infinite Jump toggled: " .. tostring(infJumpOn))
 		if infJumpOn then
 			local function apply(char)
 				local hum = char:FindFirstChildOfClass("Humanoid")
-				if hum then hum.UseJumpPower = false end
+				if hum then
+					hum.UseJumpPower = false
+					warn("[N1V1LON DEBUG] InfJump applied to character")
+				end
 			end
 			local char = player.Character
 			if char then apply(char) end
@@ -38,15 +43,12 @@ return function(container, player, uis, rs)
 			jumpReqConn = uis.JumpRequest:Connect(function()
 				if infJumpOn then
 					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-					if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+					if hum then
+						hum:ChangeState(Enum.HumanoidStateType.Jumping)
+						warn("[N1V1LON DEBUG] InfJump triggered")
+					end
 				end
 			end)
-			if _G.N1V1LON and _G.N1V1LON.cleanup then
-				table.insert(_G.N1V1LON.cleanup, function()
-					if jumpReqConn then jumpReqConn:Disconnect() end
-					if infJumpConn then infJumpConn:Disconnect() end
-				end)
-			end
 			status.Text = "ON"
 			status.TextColor3 = Color3.fromRGB(60, 200, 120)
 		else

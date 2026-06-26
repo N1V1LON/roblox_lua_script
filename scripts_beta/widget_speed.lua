@@ -1,4 +1,5 @@
 return function(container, player, uis, rs)
+	warn("[N1V1LON DEBUG] Speed widget loaded")
 	local speedOn = false
 	local speedVal = 32
 	local speedHeartbeat = nil
@@ -67,21 +68,29 @@ return function(container, player, uis, rs)
 			speedVal = math.floor(frac * 100 + 16)
 			spdVal.Text = tostring(speedVal)
 			spdFill.Size = UDim2.new(frac, 0, 1, 0)
+			warn("[N1V1LON DEBUG] Speed slider set to " .. speedVal)
 		end
 	end)
 
 	local function applySpeed()
 		if not speedOn then return end
 		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if hum then hum.WalkSpeed = speedVal end
+		if hum then
+			hum.WalkSpeed = speedVal
+			warn("[N1V1LON DEBUG] Speed applied: " .. speedVal)
+		else
+			warn("[N1V1LON DEBUG] Speed: no Humanoid found")
+		end
 	end
 
 	spdStatus.MouseButton1Click:Connect(function()
 		speedOn = not speedOn
+		warn("[N1V1LON DEBUG] Speed toggled: " .. tostring(speedOn))
 		if speedOn then
 			applySpeed()
 			if not speedHeartbeat then
 				speedHeartbeat = rs.Heartbeat:Connect(applySpeed)
+				warn("[N1V1LON DEBUG] Speed Heartbeat connected")
 			end
 			spdStatus.Text = "ON"
 			spdStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
@@ -89,6 +98,7 @@ return function(container, player, uis, rs)
 			if speedHeartbeat then
 				speedHeartbeat:Disconnect()
 				speedHeartbeat = nil
+				warn("[N1V1LON DEBUG] Speed Heartbeat disconnected")
 			end
 			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 			if hum then hum.WalkSpeed = 16 end

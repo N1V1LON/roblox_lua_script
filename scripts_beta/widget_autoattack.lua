@@ -1,4 +1,5 @@
 return function(container, player, uis, rs)
+	warn("[N1V1LON DEBUG] Auto Attack widget loaded")
 	local aaOn = false
 	local aaRange = 30
 	local zoneParts = {}
@@ -39,6 +40,7 @@ return function(container, player, uis, rs)
 		aaRange = aaRange + 5
 		if aaRange > 100 then aaRange = 10 end
 		rangeLbl.Text = tostring(aaRange)
+		warn("[N1V1LON DEBUG] AA range set to " .. aaRange)
 	end)
 
 	local function clearZone()
@@ -69,10 +71,13 @@ return function(container, player, uis, rs)
 
 	btn.MouseButton1Click:Connect(function()
 		aaOn = not aaOn
+		warn("[N1V1LON DEBUG] Auto Attack toggled: " .. tostring(aaOn))
 		if aaOn then
 			status.Text = "ON"
 			status.TextColor3 = Color3.fromRGB(60, 200, 120)
 			task.spawn(function()
+				warn("[N1V1LON DEBUG] AA loop started")
+				local tick = 0
 				while aaOn do
 					local char = player.Character
 					if char then
@@ -80,6 +85,7 @@ return function(container, player, uis, rs)
 						if root then
 							local pos = root.Position
 							drawZone(pos.Y - (root.Size.Y / 2) - 0.5)
+							local count = 0
 							for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
 								if p ~= player then
 									local c = p.Character
@@ -87,20 +93,31 @@ return function(container, player, uis, rs)
 										local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
 										local h = c:FindFirstChildOfClass("Humanoid")
 										if r and h and h.Health > 0 then
-											if (r.Position - pos).Magnitude < aaRange then
+											local dist = (r.Position - pos).Magnitude
+											if dist < aaRange then
 												local ok = pcall(function() h:TakeDamage(5) end)
 												if not ok then
 													pcall(function() h.BreakJoints() end)
 												end
+												count = count + 1
 											end
 										end
 									end
 								end
 							end
+							tick = tick + 1
+							if tick % 20 == 0 then
+								warn("[N1V1LON DEBUG] AA tick: " .. count .. " targets hit, range " .. aaRange)
+							end
+						else
+							warn("[N1V1LON DEBUG] AA: no root part")
 						end
+					else
+						warn("[N1V1LON DEBUG] AA: no character")
 					end
 					task.wait(0.05)
 				end
+				warn("[N1V1LON DEBUG] AA loop ended")
 				clearZone()
 			end)
 		else

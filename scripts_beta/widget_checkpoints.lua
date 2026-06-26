@@ -1,4 +1,5 @@
 return function(container, player, uis, rs)
+	warn("[N1V1LON DEBUG] Checkpoints widget loaded")
 	local checkpoints = {}
 
 	local cpFrame = Instance.new("Frame")
@@ -51,12 +52,18 @@ return function(container, player, uis, rs)
 
 	local function addCP()
 		local char = player.Character
-		if not char then return end
+		if not char then
+			warn("[N1V1LON DEBUG] CP: no character")
+			return
+		end
 		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-		if not root then return end
-
+		if not root then
+			warn("[N1V1LON DEBUG] CP: no root part")
+			return
+		end
 		local pos = root.Position
 		local id = #checkpoints + 1
+		warn("[N1V1LON DEBUG] CP saved #" .. id .. " at " .. tostring(pos))
 
 		local row = Instance.new("TextButton")
 		row.Size = UDim2.new(1, -6, 0, 22)
@@ -80,35 +87,32 @@ return function(container, player, uis, rs)
 			held = false
 			holdTask = task.delay(0.5, function()
 				held = true
+				warn("[N1V1LON DEBUG] CP #" .. id .. " hold detected, deleting...")
 				row.BackgroundColor3 = Color3.fromRGB(80, 40, 40)
 				task.delay(0.6, function()
 					row:Destroy()
 					for i, e in ipairs(checkpoints) do
-						if e == entry then
-							table.remove(checkpoints, i)
-							break
-						end
+						if e == entry then table.remove(checkpoints, i); break end
 					end
 				end)
 			end)
 		end)
 
 		row.MouseButton1Up:Connect(function()
-			if holdTask then
-				task.cancel(holdTask)
-				holdTask = nil
-			end
+			if holdTask then task.cancel(holdTask); holdTask = nil end
 			if not held then
+				warn("[N1V1LON DEBUG] TP to CP #" .. id)
 				local c = player.Character
 				if c then
 					local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-					if r then
-						r.Position = entry.pos
-					end
+					if r then r.Position = entry.pos end
 				end
 			end
 		end)
 	end
 
-	cpAddBtn.MouseButton1Click:Connect(addCP)
+	cpAddBtn.MouseButton1Click:Connect(function()
+		warn("[N1V1LON DEBUG] CP + clicked")
+		addCP()
+	end)
 end
