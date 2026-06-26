@@ -1,7 +1,12 @@
-local env = getgenv and getgenv() or _G
-env.N1V1LON = env.N1V1LON or {}
+rconsolecreate()
+rconsolesettitle("N1V1LON")
+rconsoleclear()
 
-print("[N1V1LON] Starting...")
+rconsoleprint("=== N1V1LON ===\n")
+rconsoleprint("[INFO] Starting...\n")
+
+local env = getgenv()
+env.N1V1LON = {}
 
 local player = game:GetService("Players").LocalPlayer
 
@@ -76,4 +81,4 @@ uiList.Padding = UDim.new(0, 6)
 uiList.SortOrder = Enum.SortOrder.LayoutOrder
 uiList.Parent = container
 
-print("[N1V1LON] Loaded")
+rconsoleprint("[OK] Loaded\n")
