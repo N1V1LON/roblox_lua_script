@@ -1,8 +1,7 @@
 return function(container, player, uis, rs)
 	local aaOn = false
-	local aaHeartbeat = nil
 	local aaRange = 30
-	local zonePart = nil
+	local zoneParts = {}
 
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, 0, 0, 32)
@@ -42,23 +41,30 @@ return function(container, player, uis, rs)
 		rangeLbl.Text = tostring(aaRange)
 	end)
 
-	local function updateZone()
-		if zonePart then zonePart:Destroy() end
+	local function clearZone()
+		for _, p in ipairs(zoneParts) do
+			pcall(function() p:Destroy() end)
+		end
+		zoneParts = {}
+	end
+
+	local function drawZone(posY)
+		clearZone()
 		if not aaOn then return end
-		local char = player.Character
-		if not char then return end
-		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-		if not root then return end
-		zonePart = Instance.new("Part")
-		zonePart.Size = Vector3.new(aaRange * 2, 0.5, aaRange * 2)
-		zonePart.Shape = Enum.PartType.Cylinder
-		zonePart.Position = root.Position - Vector3.new(0, root.Size.Y / 2, 0)
-		zonePart.Anchored = true
-		zonePart.CanCollide = false
-		zonePart.Transparency = 0.7
-		zonePart.Color = Color3.fromRGB(255, 50, 50)
-		zonePart.Material = Enum.Material.Neon
-		zonePart.Parent = workspace
+		for i = 1, 24 do
+			local angle = (i / 24) * math.pi * 2
+			local p = Instance.new("Part")
+			p.Size = Vector3.new(0.3, 0.1, 0.3)
+			p.Shape = Enum.PartType.Ball
+			p.Position = Vector3.new(math.cos(angle) * aaRange, posY, math.sin(angle) * aaRange)
+			p.Anchored = true
+			p.CanCollide = false
+			p.Transparency = 0.3
+			p.Color = Color3.fromRGB(255, 50, 50)
+			p.Material = Enum.Material.Neon
+			p.Parent = workspace
+			table.insert(zoneParts, p)
+		end
 	end
 
 	btn.MouseButton1Click:Connect(function()
@@ -66,44 +72,41 @@ return function(container, player, uis, rs)
 		if aaOn then
 			status.Text = "ON"
 			status.TextColor3 = Color3.fromRGB(60, 200, 120)
-			if aaHeartbeat then aaHeartbeat:Disconnect() end
-			aaHeartbeat = rs.Heartbeat:Connect(function()
-				if not aaOn then return end
-				local char = player.Character
-				if not char then return end
-				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-				if not root then return end
-				local pos = root.Position
-
-				updateZone()
-
-				for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-					if p ~= player then
-						local c = p.Character
-						if c then
-							local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-							local h = c:FindFirstChildOfClass("Humanoid")
-							if r and h and h.Health > 0 then
-								if (r.Position - pos).Magnitude < aaRange then
-									local success, err = pcall(function()
-										h:TakeDamage(5)
-									end)
-									if not success then
-										pcall(function()
-											h.Health = h.Health - 5
-										end)
+			task.spawn(function()
+				while aaOn do
+					local char = player.Character
+					if char then
+						local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+						if root then
+							local pos = root.Position
+							drawZone(pos.Y - (root.Size.Y / 2) - 0.5)
+							for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+								if p ~= player then
+									local c = p.Character
+									if c then
+										local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
+										local h = c:FindFirstChildOfClass("Humanoid")
+										if r and h and h.Health > 0 then
+											if (r.Position - pos).Magnitude < aaRange then
+												local ok = pcall(function() h:TakeDamage(5) end)
+												if not ok then
+													pcall(function() h.Health = h.Health - 5 end)
+												end
+											end
+										end
 									end
 								end
 							end
 						end
 					end
+					task.wait(0.1)
 				end
+				clearZone()
 			end)
 		else
 			status.Text = "OFF"
 			status.TextColor3 = Color3.fromRGB(140, 60, 60)
-			if aaHeartbeat then aaHeartbeat:Disconnect(); aaHeartbeat = nil end
-			if zonePart then zonePart:Destroy(); zonePart = nil end
+			clearZone()
 		end
 	end)
 end
