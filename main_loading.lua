@@ -1,3 +1,6 @@
+local env = getgenv and getgenv() or _G
+env.N1V1LON = env.N1V1LON or {}
+
 print("[N1V1LON] Starting...")
 
 local player = game:GetService("Players").LocalPlayer
