@@ -1,10 +1,9 @@
 local player = game:GetService("Players").LocalPlayer
-local mouse = player:GetMouse()
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "N1V1LON"
 gui.ResetOnSpawn = false
-gui.Parent = game:GetService("CoreGui")
+gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 450, 0, 350)
@@ -20,18 +19,6 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 10)
 corner.Parent = frame
 
-local shadow = Instance.new("ImageLabel")
-shadow.Size = UDim2.new(1, 20, 1, 20)
-shadow.Position = UDim2.new(0, -10, 0, -10)
-shadow.BackgroundTransparency = 1
-shadow.Image = "rbxassetid://6014261993"
-shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-shadow.ImageTransparency = 0.6
-shadow.ScaleType = Enum.ScaleType.Slice
-shadow.SliceCenter = Rect.new(10, 10, 10, 10)
-shadow.ZIndex = -1
-shadow.Parent = frame
-
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 32)
 titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
@@ -42,10 +29,6 @@ titleBar.Parent = frame
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 10)
 titleCorner.Parent = titleBar
-local titleBarTop = Instance.new("UIStroke")
-titleBarTop.Thickness = 1
-titleBarTop.Color = Color3.fromRGB(40, 40, 60)
-titleBarTop.Parent = titleBar
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -40, 1, 0)
@@ -79,7 +62,6 @@ container.BackgroundTransparency = 1
 container.BorderSizePixel = 0
 container.ScrollBarThickness = 4
 container.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 85)
-container.ScrollBarImageTransparency = 0.5
 container.CanvasSize = UDim2.new(0, 0, 0, 0)
 container.AutomaticCanvasSize = Enum.AutomaticSize.Y
 container.Parent = frame
@@ -88,19 +70,3 @@ local uiList = Instance.new("UIListLayout")
 uiList.Padding = UDim.new(0, 6)
 uiList.SortOrder = Enum.SortOrder.LayoutOrder
 uiList.Parent = container
-
-local padding = Instance.new("UIPadding")
-padding.PaddingLeft = UDim.new(0, 4)
-padding.PaddingRight = UDim.new(0, 4)
-padding.Parent = container
-
-local status = Instance.new("TextLabel")
-status.Name = "Status"
-status.Size = UDim2.new(1, 0, 0, 20)
-status.BackgroundTransparency = 1
-status.Text = "Loading..."
-status.TextColor3 = Color3.fromRGB(140, 140, 180)
-status.TextSize = 12
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.Font = Enum.Font.Gotham
-status.Parent = container
