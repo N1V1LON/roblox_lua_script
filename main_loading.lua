@@ -690,7 +690,9 @@ local ok, err = pcall(function()
 
 		local saved = false
 		local savePath = ""
-		for _, path in ipairs({ "N1V1LON_log_save.txt", "log_save.txt", "logsave/log_save.txt" }) do
+		-- try creating logsave folder
+		pcall(function() makefolder("logsave") end)
+		for _, path in ipairs({ "logsave/N1V1LON_log.txt", "N1V1LON_log_save.txt", "log_save.txt", "logsave/log_save.txt" }) do
 			if not saved then
 				local okW = pcall(function() writefile(path, fullText); saved = true; savePath = path end)
 			end

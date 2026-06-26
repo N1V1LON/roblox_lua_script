@@ -375,13 +375,17 @@ local function generateCode()
 	warn("=== END ===")
 
 	local saved = false
-	for _, path in ipairs({ "N1V1LON_blocklist.lua", "blocklist_output.lua" }) do
+	pcall(function() makefolder("logsave") end)
+	pcall(function() makefolder("users") end)
+	for _, path in ipairs({ "logsave/N1V1LON_blocklist.lua", "N1V1LON_blocklist.lua", "users/players.lua" }) do
 		if not saved then
 			local okW = pcall(function() writefile(path, full); saved = true end)
 		end
 	end
 	if saved then
-		warn("Written to file")
+		warn("Written to file. Copy this content and push to GitHub to apply.")
+	else
+		warn("writefile not available. Copy the code above and push to GitHub.")
 	end
 end
 
