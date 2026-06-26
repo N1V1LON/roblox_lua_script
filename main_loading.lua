@@ -25,7 +25,7 @@ icon.TextSize = 28
 	icon.TextColor3 = Color3.fromRGB(220, 220, 255)
 	icon.TextSize = 48
 	icon.Font = Enum.Font.GothamBold
-icon.Draggable = false
+icon.Draggable = true
 icon.Parent = gui
 Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 12)
 
