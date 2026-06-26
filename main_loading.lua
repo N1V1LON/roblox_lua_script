@@ -1,4 +1,5 @@
 local player = game:GetService("Players").LocalPlayer
+local HttpGet = game:HttpGet
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "N1V1LON"
@@ -74,7 +75,15 @@ icon.MouseButton1Click:Connect(function()
 	menu.Visible = not menu.Visible
 end)
 
-local function createButton(text, callback)
+local N1V1LON = {
+	Menu = menu,
+	Container = container,
+	Icon = icon,
+	Player = player,
+	CreateButton = nil,
+}
+
+function N1V1LON.CreateButton(text, callback)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, 0, 0, 32)
 	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
@@ -85,7 +94,7 @@ local function createButton(text, callback)
 	btn.TextXAlignment = Enum.TextXAlignment.Left
 	btn.Font = Enum.Font.Gotham
 	btn.AutoButtonColor = true
-	btn.Parent = container
+	btn.Parent = N1V1LON.Container
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 
 	local status = Instance.new("TextLabel")
@@ -105,35 +114,20 @@ local function createButton(text, callback)
 	return btn, status
 end
 
-local infJumpEnabled = false
-local infJumpConn = nil
+getgenv().N1V1LON = N1V1LON
 
-createButton("Infinite Jump", function(status)
-	infJumpEnabled = not infJumpEnabled
-	if infJumpEnabled then
-		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if hum then
-			hum.JumpPower = 100
-			hum.JumpHeight = 50
+local BASE = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/scripts/"
+
+local Scripts = {
+	"infjump.lua",
+	"speed.lua",
+}
+
+for _, name in ipairs(Scripts) do
+	pcall(function()
+		local code = HttpGet(BASE .. name, true)
+		if code then
+			loadstring(code)()
 		end
-		infJumpConn = player.CharacterAdded:Connect(function(c)
-			local h = c:WaitForChild("Humanoid")
-			h.JumpPower = 100
-			h.JumpHeight = 50
-		end)
-		status.Text = "ON"
-		status.TextColor3 = Color3.fromRGB(60, 200, 120)
-	else
-		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if hum then
-			hum.JumpPower = 50
-			hum.JumpHeight = 7.2
-		end
-		if infJumpConn then
-			infJumpConn:Disconnect()
-			infJumpConn = nil
-		end
-		status.Text = "OFF"
-		status.TextColor3 = Color3.fromRGB(140, 60, 60)
-	end
-end)
+	end)
+end
