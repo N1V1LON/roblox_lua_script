@@ -16,17 +16,17 @@ local ok, err = pcall(function()
 
 	local icon = Instance.new("TextButton")
 	icon.Name = "Icon"
-	icon.Size = UDim2.new(0, 16, 0, 16)
-	icon.Position = UDim2.new(0, 10, 0.5, -8)
+	icon.Size = UDim2.new(0, 128, 0, 128)
+	icon.Position = UDim2.new(1, -148, 0, 20)
 	icon.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 	icon.BorderSizePixel = 0
 	icon.Text = "N"
 	icon.TextColor3 = Color3.fromRGB(220, 220, 255)
-	icon.TextSize = 10
+	icon.TextSize = 48
 	icon.Font = Enum.Font.GothamBold
 	icon.Draggable = true
 	icon.Parent = gui
-	Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 4)
+	Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 16)
 
 	local menu = Instance.new("Frame")
 	menu.Name = "Menu"
