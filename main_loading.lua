@@ -8,6 +8,18 @@ if _G.N1V1LON.cleanup then
 	end
 end
 _G.N1V1LON.cleanup = {}
+_G.N1V1LON.logs = _G.N1V1LON.logs or {}
+
+local function addLog(msg)
+	local t = os.time()
+	local info = ""
+	local ok, result = pcall(function()
+		local s = game:GetService("HttpService")
+		info = s:FormatUtc(s:GetCurrentDateTime(), "!time")
+	end)
+	if not ok then info = tostring(t) end
+	table.insert(_G.N1V1LON.logs, "[" .. info .. "] " .. msg)
+end
 
 local ok, err = pcall(function()
 	local player = game:GetService("Players").LocalPlayer
@@ -106,15 +118,25 @@ local ok, err = pcall(function()
 	version.Parent = titleBar
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(0, 140, 1, 0)
-	title.Position = UDim2.new(0, 110, 0, 0)
+	title.Size = UDim2.new(0, 100, 1, 0)
+	title.Position = UDim2.new(0, 90, 0, 0)
 	title.BackgroundTransparency = 1
-	title.Text = "N1V1LON v26.2.1.0 Realse"
+	title.Text = "N1V1LON"
 	title.TextColor3 = Color3.fromRGB(220, 220, 255)
 	title.TextSize = 11
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Font = Enum.Font.GothamBold
 	title.Parent = titleBar
+
+	local logBtn = Instance.new("TextButton")
+	logBtn.Size = UDim2.new(0, 28, 1, 0)
+	logBtn.Position = UDim2.new(1, -96, 0, 0)
+	logBtn.BackgroundTransparency = 1
+	logBtn.Text = "^"
+	logBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+	logBtn.TextSize = 18
+	logBtn.Font = Enum.Font.GothamBold
+	logBtn.Parent = titleBar
 
 	local toggleBtn = Instance.new("TextButton")
 	toggleBtn.Size = UDim2.new(0, 28, 1, 0)
@@ -535,6 +557,105 @@ local ok, err = pcall(function()
 	end
 
 	cpAddBtn.MouseButton1Click:Connect(addCP)
+
+	logBtn.MouseButton1Click:Connect(function()
+		local dataLines = {}
+		table.insert(dataLines, "=== N1V1LON Debug Log ===")
+		table.insert(dataLines, "Version: v26.2.1.0 Realse")
+		table.insert(dataLines, "Build: release (single-file)")
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Game Info ---")
+		local okG, gName = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name end)
+		table.insert(dataLines, "Game: " .. (okG and gName or "unknown"))
+		table.insert(dataLines, "PlaceId: " .. game.PlaceId)
+		table.insert(dataLines, "JobId: " .. game.JobId)
+		table.insert(dataLines, "CreatorId: " .. game.CreatorId)
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Player ---")
+		table.insert(dataLines, "Name: " .. player.Name)
+		table.insert(dataLines, "UserId: " .. player.UserId)
+		table.insert(dataLines, "AccountAge: " .. player.AccountAge)
+		local char = player.Character
+		if char then
+			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+			if root then table.insert(dataLines, "Position: " .. tostring(root.Position)) end
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			if hum then table.insert(dataLines, "Health: " .. hum.Health .. "/" .. hum.MaxHealth .. " WS:" .. hum.WalkSpeed) end
+		end
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Inventory ---")
+		local backpack = player:FindFirstChild("Backpack")
+		if backpack then
+			for _, item in ipairs(backpack:GetChildren()) do
+				table.insert(dataLines, "  [Backpack] " .. item.Name .. " (" .. item.ClassName .. ")")
+			end
+		end
+		if char then
+			for _, item in ipairs(char:GetChildren()) do
+				if item:IsA("Tool") or item:IsA("Accoutrement") or item:IsA("Accessory") then
+					table.insert(dataLines, "  [Char] " .. item.Name .. " (" .. item.ClassName .. ")")
+				end
+			end
+		end
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Nearby Parts (30 studs) ---")
+		if char then
+			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+			if root then
+				local pos = root.Position
+				local count = 0
+				for _, part in ipairs(workspace:GetDescendants()) do
+					if part:IsA("BasePart") and not part:IsA("Terrain") then
+						if (part.Position - pos).Magnitude < 30 then
+							count = count + 1
+							if count <= 50 then
+								table.insert(dataLines, "  " .. part.Name .. " (" .. part.ClassName .. ")")
+							end
+						end
+					end
+				end
+				table.insert(dataLines, "  Total nearby: " .. count)
+			end
+		end
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Runtime Logs ---")
+		if _G.N1V1LON.logs then
+			for _, line in ipairs(_G.N1V1LON.logs) do
+				table.insert(dataLines, line)
+			end
+		end
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Players ---")
+		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+			local info = p.Name
+			local c = p.Character
+			if c then
+				local h = c:FindFirstChildOfClass("Humanoid")
+				if h then info = info .. " HP:" .. math.floor(h.Health) end
+			end
+			table.insert(dataLines, "  " .. info)
+		end
+		table.insert(dataLines, "")
+		table.insert(dataLines, "=== End ===")
+
+		local fullText = table.concat(dataLines, "\n")
+
+		local saved = false
+		local savePath = ""
+		for _, path in ipairs({ "N1V1LON_log_save.txt", "log_save.txt", "logsave/log_save.txt" }) do
+			if not saved then
+				local okW = pcall(function() writefile(path, fullText); saved = true; savePath = path end)
+			end
+		end
+		if saved then
+			warn("N1V1LON: log saved to " .. savePath)
+		else
+			warn("N1V1LON: writefile not available, log below")
+		end
+		warn("=== N1V1LON LOG ===")
+		warn(fullText)
+		warn("=== END LOG ===")
+	end)
 end)
 
 if not ok then

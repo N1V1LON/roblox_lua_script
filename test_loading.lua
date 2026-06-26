@@ -63,6 +63,28 @@ local ok, err = pcall(function()
 	gui.ResetOnSpawn = false
 	gui.Parent = pg
 
+	-- periodic block check
+	task.spawn(function()
+		while gui and gui.Parent do
+			task.wait(5)
+			local okB2, raw2 = pcall(function()
+				return game:HttpGet(blockUrl, true)
+			end)
+			if okB2 and raw2 then
+				local okFn2, tbl2 = pcall(loadstring, raw2)
+				if okFn2 and type(tbl2) == "table" then
+					local pData2 = tbl2[player.UserId]
+					if pData2 and pData2.blocked == true then
+						warn("N1V1LON: blocked " .. player.Name .. " (" .. player.UserId .. ")")
+						if gui then pcall(function() gui:Destroy() end) end
+						_G.N1V1LON.blocked = true
+						return
+					end
+				end
+			end
+		end
+	end)
+
 	local icon = Instance.new("TextButton")
 	icon.Name = "Icon"
 	icon.Size = UDim2.new(0, 48, 0, 48)
