@@ -73,35 +73,25 @@ local ok, err = pcall(function()
 	version.Parent = titleBar
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(0, 70, 1, 0)
+	title.Size = UDim2.new(0, 140, 1, 0)
 	title.Position = UDim2.new(0, 110, 0, 0)
 	title.BackgroundTransparency = 1
-	title.Text = "N1V1LON"
+	title.Text = "N1V1LON v26.0.1.1D"
 	title.TextColor3 = Color3.fromRGB(220, 220, 255)
-	title.TextSize = 13
+	title.TextSize = 11
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Font = Enum.Font.GothamBold
 	title.Parent = titleBar
 
-	local modeToggle = Instance.new("TextButton")
-	modeToggle.Size = UDim2.new(0, 28, 1, 0)
-	modeToggle.Position = UDim2.new(1, -96, 0, 0)
-	modeToggle.BackgroundTransparency = 1
-	modeToggle.Text = "*"
-	modeToggle.TextColor3 = Color3.fromRGB(160, 160, 200)
-	modeToggle.TextSize = 16
-	modeToggle.Font = Enum.Font.GothamBold
-	modeToggle.Parent = titleBar
-
-	local stopBtn = Instance.new("TextButton")
-	stopBtn.Size = UDim2.new(0, 28, 1, 0)
-	stopBtn.Position = UDim2.new(1, -64, 0, 0)
-	stopBtn.BackgroundTransparency = 1
-	stopBtn.Text = "<"
-	stopBtn.TextColor3 = Color3.fromRGB(200, 200, 100)
-	stopBtn.TextSize = 18
-	stopBtn.Font = Enum.Font.GothamBold
-	stopBtn.Parent = titleBar
+	local toggleBtn = Instance.new("TextButton")
+	toggleBtn.Size = UDim2.new(0, 28, 1, 0)
+	toggleBtn.Position = UDim2.new(1, -64, 0, 0)
+	toggleBtn.BackgroundTransparency = 1
+	toggleBtn.Text = "<"
+	toggleBtn.TextColor3 = Color3.fromRGB(200, 200, 100)
+	toggleBtn.TextSize = 18
+	toggleBtn.Font = Enum.Font.GothamBold
+	toggleBtn.Parent = titleBar
 
 	local closeBtn = Instance.new("TextButton")
 	closeBtn.Size = UDim2.new(0, 32, 1, 0)
@@ -117,22 +107,9 @@ local ok, err = pcall(function()
 		menu.Visible = false
 	end)
 
-	local stopped = false
-	stopBtn.MouseButton1Click:Connect(function()
-		stopped = not stopped
-		if stopped then
-			menu.Visible = false
-			icon.Text = ">"
-			stopBtn.Text = ">"
-		else
-			icon.Text = "N"
-			stopBtn.Text = "<"
-		end
-	end)
-
-	local isSettings = false
-	modeToggle.MouseButton1Click:Connect(function()
-		isSettings = not isSettings
+	toggleBtn.MouseButton1Click:Connect(function()
+		menu.Visible = false
+		toggleBtn.Text = ">"
 	end)
 
 	local container = Instance.new("ScrollingFrame")
@@ -148,10 +125,8 @@ local ok, err = pcall(function()
 
 	icon.MouseButton1Click:Connect(function()
 		menu.Visible = not menu.Visible
-		if stopped then
-			stopped = false
-			icon.Text = "N"
-			stopBtn.Text = "<"
+		if menu.Visible then
+			toggleBtn.Text = "<"
 		end
 	end)
 
