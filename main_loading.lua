@@ -1,24 +1,17 @@
-local SCRIPTS = {
-	GUI = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/src/gui.client.lua",
-}
+--!strict
 
-local loaded = 0
-local total = 0
+local HttpGet = game.HttpGet
 
-for name, url in pairs(SCRIPTS) do
-	total = total + 1
-end
+local Scripts: {string} = loadstring(
+	HttpGet(game, "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/ScriptsList.lua")
+)() :: any
 
-for name, url in pairs(SCRIPTS) do
+for _, url in Scripts do
 	local success = pcall(function()
-		local content = game:HttpGet(url, true)
-		local fn = loadstring(content)
-		if fn then
-			fn()
-		end
+		loadstring(HttpGet(game, url))()
 	end)
 
-	if success then
-		loaded = loaded + 1
+	if not success then
+		warn("Failed to load: " .. url)
 	end
 end
