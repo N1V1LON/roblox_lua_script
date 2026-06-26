@@ -1,3 +1,4 @@
+print("[DEBUG]: gui.lua -> Start")
 local N1V1LON = getgenv().N1V1LON
 local Player = N1V1LON.Player
 
@@ -109,3 +110,5 @@ function N1V1LON.CreateButton(text, callback)
 
 	return btn, status
 end
+
+print("[DEBUG]: gui.lua -> Done")
