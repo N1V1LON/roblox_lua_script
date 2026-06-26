@@ -202,7 +202,6 @@ local ok, err = pcall(function()
 	local speedOn = false
 	local speedVal = 32
 	local speedHeartbeat = nil
-	local spdDragging = false
 
 	local spdBtn = Instance.new("Frame")
 	spdBtn.Size = UDim2.new(1, 0, 0, 48)
@@ -259,47 +258,22 @@ local ok, err = pcall(function()
 	spdFill.Parent = spdBg
 	Instance.new("UICorner", spdFill).CornerRadius = UDim.new(0, 3)
 
-	local function setSpeedFromMouse()
-		local pos = spdBg.AbsolutePosition
-		local size = spdBg.AbsoluteSize.X
-		if size > 0 then
-			local mx, my = uis:GetMouseLocation()
-			local frac = math.clamp((mx - pos.X) / size, 0, 1)
+	spdBg.MouseButton1Click:Connect(function()
+		local mx = uis:GetMouseLocation().X
+		local posX = spdBg.AbsolutePosition.X
+		local sizeX = spdBg.AbsoluteSize.X
+		if sizeX > 0 then
+			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
 			speedVal = math.floor(frac * 100 + 16)
 			spdVal.Text = tostring(speedVal)
 			spdFill.Size = UDim2.new(frac, 0, 1, 0)
-			if speedOn then
-				local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-				if hum then hum.WalkSpeed = speedVal end
-			end
-		end
-	end
-
-	spdBg.MouseButton1Down:Connect(function()
-		spdDragging = true
-		setSpeedFromMouse()
-	end)
-
-	spdBg.MouseButton1Up:Connect(function()
-		spdDragging = false
-	end)
-
-	uis.InputChanged:Connect(function(input)
-		if spdDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-			setSpeedFromMouse()
-		end
-	end)
-
-	uis.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			spdDragging = false
 		end
 	end)
 
 	local function applySpeed()
 		if not speedOn then return end
 		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if hum and hum.WalkSpeed ~= speedVal then
+		if hum then
 			hum.WalkSpeed = speedVal
 		end
 	end
