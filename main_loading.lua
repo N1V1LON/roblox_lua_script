@@ -13,8 +13,15 @@ local ok, err = pcall(function()
 
 	local existing = pg:FindFirstChild("N1V1LON")
 	if existing then
-		local icon = existing:FindFirstChild("Icon")
-		if icon then icon.Visible = true end
+		local iconExist = existing:FindFirstChild("Icon")
+		local menuExist = existing:FindFirstChild("Menu")
+		if not existing.Enabled then
+			existing.Enabled = true
+			if iconExist then iconExist.Visible = true end
+			if menuExist then menuExist.Visible = false end
+		else
+			if iconExist then iconExist.Visible = true end
+		end
 		return
 	end
 
@@ -114,10 +121,11 @@ local ok, err = pcall(function()
 	stopBtn.MouseButton1Click:Connect(function()
 		stopped = not stopped
 		if stopped then
-			gui.Enabled = false
+			menu.Visible = false
+			icon.Text = ">"
 			stopBtn.Text = ">"
 		else
-			gui.Enabled = true
+			icon.Text = "N"
 			stopBtn.Text = "<"
 		end
 	end)
@@ -140,6 +148,11 @@ local ok, err = pcall(function()
 
 	icon.MouseButton1Click:Connect(function()
 		menu.Visible = not menu.Visible
+		if stopped then
+			stopped = false
+			icon.Text = "N"
+			stopBtn.Text = "<"
+		end
 	end)
 
 	local function createButton(text, callback)
