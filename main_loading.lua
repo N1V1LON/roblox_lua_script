@@ -13,16 +13,7 @@ local ok, err = pcall(function()
 
 	local existing = pg:FindFirstChild("N1V1LON")
 	if existing then
-		local iconExist = existing:FindFirstChild("Icon")
-		local menuExist = existing:FindFirstChild("Menu")
-		if not existing.Enabled then
-			existing.Enabled = true
-			if iconExist then iconExist.Visible = true end
-			if menuExist then menuExist.Visible = false end
-		else
-			if iconExist then iconExist.Visible = true end
-		end
-		return
+		existing:Destroy()
 	end
 
 	local gui = Instance.new("ScreenGui")
@@ -221,7 +212,7 @@ local ok, err = pcall(function()
 	spdLabel.Font = Enum.Font.Gotham
 	spdLabel.Parent = spdBtn
 
-	local spdStatus = Instance.new("TextLabel")
+	local spdStatus = Instance.new("TextButton")
 	spdStatus.Size = UDim2.new(0, 50, 0, 20)
 	spdStatus.Position = UDim2.new(1, -55, 0, 4)
 	spdStatus.BackgroundTransparency = 1
@@ -230,21 +221,6 @@ local ok, err = pcall(function()
 	spdStatus.TextSize = 12
 	spdStatus.Font = Enum.Font.GothamBold
 	spdStatus.Parent = spdBtn
-
-	local spdBg = Instance.new("Frame")
-	spdBg.Size = UDim2.new(1, -20, 0, 6)
-	spdBg.Position = UDim2.new(0, 10, 0, 30)
-	spdBg.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-	spdBg.BorderSizePixel = 0
-	spdBg.Parent = spdBtn
-	Instance.new("UICorner", spdBg).CornerRadius = UDim.new(0, 3)
-
-	local spdFill = Instance.new("Frame")
-	spdFill.Size = UDim2.new(0.5, 0, 1, 0)
-	spdFill.BackgroundColor3 = Color3.fromRGB(60, 200, 120)
-	spdFill.BorderSizePixel = 0
-	spdFill.Parent = spdBg
-	Instance.new("UICorner", spdFill).CornerRadius = UDim.new(0, 3)
 
 	local spdVal = Instance.new("TextLabel")
 	spdVal.Size = UDim2.new(0, 50, 0, 20)
@@ -256,30 +232,24 @@ local ok, err = pcall(function()
 	spdVal.Font = Enum.Font.GothamBold
 	spdVal.Parent = spdBtn
 
-	local dragging = false
-	spdBg.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-		end
-	end)
-	spdBg.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
-		end
-	end)
-	spdBg.InputChanged:Connect(function(input)
-		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-			local pos = UDim2.new(math.clamp((input.Position.X - spdBg.AbsolutePosition.X) / spdBg.AbsoluteSize.X, 0, 1), 0, 1, 0)
-			spdFill.Size = pos
-			speedVal = math.floor(pos.X.Scale * 100 + 16)
-			spdVal.Text = tostring(speedVal)
-			if speedOn then
-				local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-				if hum then hum.WalkSpeed = speedVal end
-			end
-		end
-	end)
-	spdBg.Activated:Connect(function()
+	local spdBg = Instance.new("TextButton")
+	spdBg.Size = UDim2.new(1, -20, 0, 6)
+	spdBg.Position = UDim2.new(0, 10, 0, 30)
+	spdBg.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+	spdBg.BorderSizePixel = 0
+	spdBg.Text = ""
+	spdBg.AutoButtonColor = false
+	spdBg.Parent = spdBtn
+	Instance.new("UICorner", spdBg).CornerRadius = UDim.new(0, 3)
+
+	local spdFill = Instance.new("Frame")
+	spdFill.Size = UDim2.new((speedVal - 16) / 100, 0, 1, 0)
+	spdFill.BackgroundColor3 = Color3.fromRGB(60, 200, 120)
+	spdFill.BorderSizePixel = 0
+	spdFill.Parent = spdBg
+	Instance.new("UICorner", spdFill).CornerRadius = UDim.new(0, 3)
+
+	spdStatus.MouseButton1Click:Connect(function()
 		speedOn = not speedOn
 		if speedOn then
 			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -299,6 +269,20 @@ local ok, err = pcall(function()
 			end
 			spdStatus.Text = "OFF"
 			spdStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
+		end
+	end)
+
+	spdBg.MouseButton1Down:Connect(function(x)
+		local size = spdBg.AbsoluteSize.X
+		if size > 0 then
+			local frac = math.clamp(x / size, 0, 1)
+			speedVal = math.floor(frac * 100 + 16)
+			spdVal.Text = tostring(speedVal)
+			spdFill.Size = UDim2.new(frac, 0, 1, 0)
+			if speedOn then
+				local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+				if hum then hum.WalkSpeed = speedVal end
+			end
 		end
 	end)
 
