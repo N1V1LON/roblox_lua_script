@@ -259,8 +259,6 @@ local ok, err = pcall(function()
 	spdFill.Parent = spdBg
 	Instance.new("UICorner", spdFill).CornerRadius = UDim.new(0, 3)
 
-	local spdDragging = false
-
 	local function setSpeedFromMouse()
 		local pos = spdBg.AbsolutePosition
 		local size = spdBg.AbsoluteSize.X
@@ -330,14 +328,14 @@ local ok, err = pcall(function()
 	local checkpoints = {}
 
 	local cpFrame = Instance.new("Frame")
-	cpFrame.Size = UDim2.new(1, 0, 0, 200)
+	cpFrame.Size = UDim2.new(1, 0, 0, 120)
 	cpFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	cpFrame.BorderSizePixel = 0
 	cpFrame.Parent = container
 	Instance.new("UICorner", cpFrame).CornerRadius = UDim.new(0, 6)
 
 	local cpHeader = Instance.new("Frame")
-	cpHeader.Size = UDim2.new(1, 0, 0, 24)
+	cpHeader.Size = UDim2.new(1, 0, 0, 20)
 	cpHeader.BackgroundTransparency = 1
 	cpHeader.Parent = cpFrame
 
@@ -353,28 +351,28 @@ local ok, err = pcall(function()
 	cpLabel.Parent = cpHeader
 
 	local cpAddBtn = Instance.new("TextButton")
-	cpAddBtn.Size = UDim2.new(0, 24, 0, 24)
-	cpAddBtn.Position = UDim2.new(1, -32, 0, 0)
+	cpAddBtn.Size = UDim2.new(0, 20, 0, 20)
+	cpAddBtn.Position = UDim2.new(1, -26, 0, 0)
 	cpAddBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
 	cpAddBtn.BorderSizePixel = 0
 	cpAddBtn.Text = "+"
 	cpAddBtn.TextColor3 = Color3.fromRGB(160, 200, 160)
-	cpAddBtn.TextSize = 16
+	cpAddBtn.TextSize = 14
 	cpAddBtn.Font = Enum.Font.GothamBold
 	cpAddBtn.Parent = cpHeader
-	Instance.new("UICorner", cpAddBtn).CornerRadius = UDim.new(0, 4)
+	Instance.new("UICorner", cpAddBtn).CornerRadius = UDim.new(0, 3)
 
 	local cpList = Instance.new("ScrollingFrame")
-	cpList.Size = UDim2.new(1, -8, 1, -32)
-	cpList.Position = UDim2.new(0, 4, 0, 28)
+	cpList.Size = UDim2.new(1, -8, 1, -24)
+	cpList.Position = UDim2.new(0, 4, 0, 22)
 	cpList.BackgroundTransparency = 1
 	cpList.BorderSizePixel = 0
-	cpList.ScrollBarThickness = 4
+	cpList.ScrollBarThickness = 3
 	cpList.CanvasSize = UDim2.new(0, 0, 0, 0)
 	cpList.Parent = cpFrame
 	local cpLayout = Instance.new("UIListLayout")
 	cpLayout.FillDirection = Enum.FillDirection.Vertical
-	cpLayout.Padding = UDim.new(0, 3)
+	cpLayout.Padding = UDim.new(0, 2)
 	cpLayout.Parent = cpList
 
 	local function addCP()
@@ -387,16 +385,16 @@ local ok, err = pcall(function()
 		local id = #checkpoints + 1
 
 		local row = Instance.new("TextButton")
-		row.Size = UDim2.new(1, -6, 0, 28)
+		row.Size = UDim2.new(1, -6, 0, 22)
 		row.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
 		row.BorderSizePixel = 0
 		row.Text = "  CP" .. tostring(id) .. "  (" .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z) .. ")"
 		row.TextColor3 = Color3.fromRGB(200, 200, 220)
-		row.TextSize = 12
+		row.TextSize = 11
 		row.Font = Enum.Font.Gotham
 		row.TextXAlignment = Enum.TextXAlignment.Left
 		row.Parent = cpList
-		Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
+		Instance.new("UICorner", row).CornerRadius = UDim.new(0, 3)
 
 		local entry = { pos = pos, row = row }
 		checkpoints[id] = entry
