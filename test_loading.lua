@@ -1,6 +1,4 @@
 -- N1V1LON test loader
--- Загружает виджеты из scripts/ через loadstring
-
 local baseUrl = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/scripts_beta/"
 
 local widgets = {
@@ -20,16 +18,30 @@ if _G.N1V1LON.cleanup then
 	end
 end
 _G.N1V1LON.cleanup = {}
+_G.N1V1LON.logs = {}
+
+local function addLog(msg)
+	local t = os.time()
+	local info = ""
+	local ok, result = pcall(function()
+		local s = game:GetService("HttpService")
+		info = s:FormatUtc(s:GetCurrentDateTime(), "!time")
+	end)
+	if not ok then info = tostring(t) end
+	table.insert(_G.N1V1LON.logs, "[" .. info .. "] " .. msg)
+end
 
 local ok, err = pcall(function()
 	local player = game:GetService("Players").LocalPlayer
 	if not player then return end
 
+	addLog("Player found: " .. player.Name)
+
 	local pg = player:WaitForChild("PlayerGui", 10)
 	if not pg then return end
 
 	local existing = pg:FindFirstChild("N1V1LON")
-	if existing then existing:Destroy() end
+	if existing then existing:Destroy(); addLog("Old GUI destroyed") end
 
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "N1V1LON"
@@ -78,6 +90,16 @@ local ok, err = pcall(function()
 	title.Font = Enum.Font.GothamBold
 	title.Parent = titleBar
 
+	local logBtn = Instance.new("TextButton")
+	logBtn.Size = UDim2.new(0, 28, 1, 0)
+	logBtn.Position = UDim2.new(1, -64, 0, 0)
+	logBtn.BackgroundTransparency = 1
+	logBtn.Text = "^"
+	logBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+	logBtn.TextSize = 18
+	logBtn.Font = Enum.Font.GothamBold
+	logBtn.Parent = titleBar
+
 	local closeBtn = Instance.new("TextButton")
 	closeBtn.Size = UDim2.new(0, 32, 1, 0)
 	closeBtn.Position = UDim2.new(1, -32, 0, 0)
@@ -114,10 +136,154 @@ local ok, err = pcall(function()
 		end)
 		if success and type(fn) == "function" then
 			pcall(fn, container, player, uis, rs)
+			addLog("Loaded: " .. name)
 		else
 			warn("N1V1LON: failed to load " .. name)
+			addLog("FAILED: " .. name)
 		end
 	end
+
+	logBtn.MouseButton1Click:Connect(function()
+		local dataLines = {}
+		table.insert(dataLines, "=== N1V1LON Debug Log ===")
+		table.insert(dataLines, "Version: v26.2.1.0 Realse")
+		table.insert(dataLines, "Build: beta (scripts_beta)")
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Game Info ---")
+		local ok, gName = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name end)
+		table.insert(dataLines, "Game: " .. (ok and gName or "unknown"))
+		table.insert(dataLines, "PlaceId: " .. game.PlaceId)
+		table.insert(dataLines, "JobId: " .. game.JobId)
+		table.insert(dataLines, "CreatorId: " .. game.CreatorId)
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Player ---")
+		table.insert(dataLines, "Name: " .. player.Name)
+		table.insert(dataLines, "UserId: " .. player.UserId)
+		table.insert(dataLines, "AccountAge: " .. player.AccountAge)
+		local char = player.Character
+		if char then
+			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+			if root then
+				table.insert(dataLines, "Position: " .. tostring(root.Position))
+			end
+			table.insert(dataLines, "Character: " .. char.Name)
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			if hum then
+				table.insert(dataLines, "Health: " .. hum.Health .. "/" .. hum.MaxHealth)
+				table.insert(dataLines, "WalkSpeed: " .. hum.WalkSpeed)
+			end
+		end
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Inventory ---")
+		local backpack = player:FindFirstChild("Backpack")
+		if backpack then
+			for _, item in ipairs(backpack:GetChildren()) do
+				table.insert(dataLines, "  [Backpack] " .. item.Name .. " (" .. item.ClassName .. ")")
+			end
+		end
+		if char then
+			for _, item in ipairs(char:GetChildren()) do
+				if item:IsA("Tool") or item:IsA("Accoutrement") or item:IsA("Accessory") then
+					table.insert(dataLines, "  [Char] " .. item.Name .. " (" .. item.ClassName .. ")")
+				end
+			end
+		end
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Nearby Parts (30 studs) ---")
+		if char then
+			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+			if root then
+				local pos = root.Position
+				local count = 0
+				for _, part in ipairs(workspace:GetDescendants()) do
+					if part:IsA("BasePart") and not part:IsA("Terrain") then
+						local dist = (part.Position - pos).Magnitude
+						if dist < 30 then
+							count = count + 1
+							if count <= 50 then
+								table.insert(dataLines, "  " .. part.Name .. " (" .. part.ClassName .. ") at " .. tostring(part.Position))
+							end
+						end
+					end
+				end
+				table.insert(dataLines, "  Total nearby: " .. count)
+			end
+		end
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Runtime Logs ---")
+		for _, line in ipairs(_G.N1V1LON.logs) do
+			table.insert(dataLines, line)
+		end
+		table.insert(dataLines, "")
+		table.insert(dataLines, "--- Players ---")
+		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+			local info = p.Name
+			local c = p.Character
+			if c then
+				local h = c:FindFirstChildOfClass("Humanoid")
+				if h then info = info .. " HP:" .. math.floor(h.Health) end
+			end
+			table.insert(dataLines, "  " .. info)
+		end
+		table.insert(dataLines, "")
+		table.insert(dataLines, "=== End ===")
+
+		local fullText = table.concat(dataLines, "\n")
+		addLog("Log collected (" .. #dataLines .. " lines)")
+
+		local saved = false
+		local sent = false
+
+		local okW, errW = pcall(function()
+			writefile("logsave/log_save.txt", fullText)
+			saved = true
+			addLog("Saved to logsave/log_save.txt")
+		end)
+		if not okW then
+			local okW2, errW2 = pcall(function()
+				writefile("N1V1LON_log_save.txt", fullText)
+				saved = true
+				addLog("Saved to N1V1LON_log_save.txt")
+			end)
+			if not okW2 then
+				addLog("writefile not available: " .. tostring(errW2))
+			end
+		end
+
+		local okH, errH = pcall(function()
+			local http = syn and syn.request or request or http_request
+			if http then
+				http({
+					Url = "https://api.github.com/gists",
+					Method = "POST",
+					Headers = {
+						["Content-Type"] = "application/json",
+					},
+					Body = game:GetService("HttpService"):JSONEncode({
+						description = "N1V1LON Debug Log",
+						public = false,
+						files = {
+							["log_save.txt"] = {
+								content = fullText,
+							},
+						},
+					}),
+				})
+				sent = true
+				addLog("Sent to GitHub Gist")
+			else
+				addLog("HTTP request not available")
+			end
+		end)
+		if not okH then
+			addLog("HTTP failed: " .. tostring(errH))
+		end
+
+		warn("=== N1V1LON LOG ===")
+		warn(fullText)
+		warn("=== END LOG ===")
+		warn("Saved: " .. tostring(saved) .. ", Gist: " .. tostring(sent))
+	end)
 end)
 
 if not ok then
