@@ -35,6 +35,17 @@ local ok, err = pcall(function()
 	local player = game:GetService("Players").LocalPlayer
 	if not player then return end
 
+	local function chatLocal(msg, color)
+		local char = player.Character
+		if not char then return end
+		local head = char:FindFirstChild("Head")
+		if not head then return end
+		local chat = game:GetService("Chat")
+		pcall(function()
+			chat:Chat(head, msg, color or Color3.fromRGB(200, 200, 255))
+		end)
+	end
+
 	addLog("Player found: " .. player.Name)
 
 	local pg = player:WaitForChild("PlayerGui", 10)
@@ -53,6 +64,7 @@ local ok, err = pcall(function()
 			local pData = playersTbl[player.UserId]
 			if pData and pData.blocked == true then
 				warn("N1V1LON: blocked " .. player.Name .. " (" .. player.UserId .. ")")
+				chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
 				return
 			end
 		end
@@ -76,6 +88,7 @@ local ok, err = pcall(function()
 					local pData2 = tbl2[player.UserId]
 					if pData2 and pData2.blocked == true then
 						warn("N1V1LON: blocked " .. player.Name .. " (" .. player.UserId .. ")")
+						chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
 						if gui then pcall(function() gui:Destroy() end) end
 						_G.N1V1LON.blocked = true
 						return
@@ -281,8 +294,10 @@ local ok, err = pcall(function()
 		if saved then
 			addLog("Saved to " .. savePath)
 			warn("N1V1LON: log saved to " .. savePath)
+			chatLocal("N1V1LON: log saved (" .. #dataLines .. " lines)", Color3.fromRGB(100, 255, 100))
 		else
 			warn("N1V1LON: writefile not available, log below")
+			chatLocal("N1V1LON: writefile not available, check console", Color3.fromRGB(255, 100, 100))
 		end
 		warn("=== N1V1LON LOG ===")
 		warn(fullText)

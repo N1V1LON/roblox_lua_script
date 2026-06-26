@@ -25,6 +25,17 @@ local ok, err = pcall(function()
 	local player = game:GetService("Players").LocalPlayer
 	if not player then return end
 
+	local function chatLocal(msg, color)
+		local char = player.Character
+		if not char then return end
+		local head = char:FindFirstChild("Head")
+		if not head then return end
+		local chat = game:GetService("Chat")
+		pcall(function()
+			chat:Chat(head, msg, color or Color3.fromRGB(200, 200, 255))
+		end)
+	end
+
 	local pg = player:WaitForChild("PlayerGui", 10)
 	if not pg then return end
 
@@ -41,6 +52,7 @@ local ok, err = pcall(function()
 			local pData = playersTbl[player.UserId]
 			if pData and pData.blocked == true then
 				warn("N1V1LON: blocked " .. player.Name .. " (" .. player.UserId .. ")")
+				chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
 				return
 			end
 		end
@@ -64,6 +76,7 @@ local ok, err = pcall(function()
 					local pData2 = tbl2[player.UserId]
 					if pData2 and pData2.blocked == true then
 						warn("N1V1LON: blocked " .. player.Name .. " (" .. player.UserId .. ")")
+						chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
 						if gui then
 							pcall(function() gui:Destroy() end)
 						end
@@ -341,9 +354,10 @@ local ok, err = pcall(function()
 
 	-- Auto Attack
 	local aaOn = false
-	local aaHeartbeat = nil
 	local aaRange = 30
 	local aaZoneParts = {}
+	local aaAttackConn = nil
+	local aaUpdateConn = nil
 
 	local aaBtn = Instance.new("TextButton")
 	aaBtn.Size = UDim2.new(1, 0, 0, 32)
@@ -367,6 +381,23 @@ local ok, err = pcall(function()
 	aaStatus.Font = Enum.Font.GothamBold
 	aaStatus.Parent = aaBtn
 
+	local aaRangeLbl = Instance.new("TextButton")
+	aaRangeLbl.Size = UDim2.new(0, 40, 1, 0)
+	aaRangeLbl.Position = UDim2.new(1, -100, 0, 0)
+	aaRangeLbl.BackgroundTransparency = 1
+	aaRangeLbl.Text = tostring(aaRange)
+	aaRangeLbl.TextColor3 = Color3.fromRGB(160, 200, 160)
+	aaRangeLbl.TextSize = 12
+	aaRangeLbl.Font = Enum.Font.GothamBold
+	aaRangeLbl.Parent = aaBtn
+
+	aaRangeLbl.MouseButton1Click:Connect(function()
+		aaRange = aaRange + 5
+		if aaRange > 100 then aaRange = 10 end
+		aaRangeLbl.Text = tostring(aaRange)
+		updateZone()
+	end)
+
 	local function clearZone()
 		for _, p in ipairs(aaZoneParts) do
 			pcall(function() p:Destroy() end)
@@ -374,14 +405,13 @@ local ok, err = pcall(function()
 		aaZoneParts = {}
 	end
 
-	local function drawZone(posY)
+	local function createZone()
 		clearZone()
 		for i = 1, 24 do
 			local angle = (i / 24) * math.pi * 2
 			local p = Instance.new("Part")
 			p.Size = Vector3.new(0.4, 0.1, 0.4)
 			p.Shape = Enum.PartType.Ball
-			p.Position = Vector3.new(math.cos(angle) * aaRange, posY, math.sin(angle) * aaRange)
 			p.Anchored = true
 			p.CanCollide = false
 			p.Transparency = 0.3
@@ -392,63 +422,81 @@ local ok, err = pcall(function()
 		end
 	end
 
+	local function updateZone()
+		if not aaOn or #aaZoneParts == 0 then return end
+		local char = player.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+		if not root then return end
+		local posY = root.Position.Y - (root.Size.Y / 2) - 0.5
+		for i, p in ipairs(aaZoneParts) do
+			local angle = (i / 24) * math.pi * 2
+			p.Position = Vector3.new(math.cos(angle) * aaRange, posY, math.sin(angle) * aaRange)
+		end
+	end
+
+	local function aaAttack()
+		local char = player.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+		if not root then return end
+		local pos = root.Position
+
+		local playerChars = {}
+		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+			if p ~= player and p.Character then
+				playerChars[p.Character] = true
+			end
+		end
+
+		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+			if p ~= player then
+				local c = p.Character
+				if c then
+					local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
+					local h = c:FindFirstChildOfClass("Humanoid")
+					if r and h and h.Health > 0 and (r.Position - pos).Magnitude < aaRange then
+						local ok = pcall(function() h:TakeDamage(5) end)
+						if not ok then pcall(function() h:BreakJoints() end) end
+					end
+				end
+			end
+		end
+
+		for _, part in ipairs(workspace:GetDescendants()) do
+			if part == char then continue end
+			local h = part:FindFirstChildOfClass("Humanoid")
+			if h and h.Health > 0 then
+				local r = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
+				if r and not playerChars[part] and (r.Position - pos).Magnitude < aaRange then
+					local ok = pcall(function() h:TakeDamage(5) end)
+					if not ok then pcall(function() h:BreakJoints() end) end
+				end
+			end
+		end
+	end
+
 	aaBtn.MouseButton1Click:Connect(function()
 		aaOn = not aaOn
 		if aaOn then
 			aaStatus.Text = "ON"
 			aaStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			if aaHeartbeat then aaHeartbeat:Disconnect() end
-			aaHeartbeat = rs.Heartbeat:Connect(function()
-				if not aaOn then return end
-				local char = player.Character
-				if not char then return end
-				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-				if not root then return end
-				local pos = root.Position
-				drawZone(pos.Y - (root.Size.Y / 2) - 0.5)
-
-				local playerChars = {}
-				for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-					if p ~= player and p.Character then
-						playerChars[p.Character] = true
-					end
-				end
-
-				for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-					if p ~= player then
-						local c = p.Character
-						if c then
-							local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-							local h = c:FindFirstChildOfClass("Humanoid")
-							if r and h and h.Health > 0 then
-								if (r.Position - pos).Magnitude < aaRange then
-									local ok = pcall(function() h:TakeDamage(5) end)
-									if not ok then pcall(function() h:BreakJoints() end) end
-								end
-							end
-						end
-					end
-				end
-
-			local myChar = player.Character
-				for _, part in ipairs(workspace:GetDescendants()) do
-					if part == myChar then continue end
-					local h = part:FindFirstChildOfClass("Humanoid")
-					if h and h.Health > 0 then
-						local r = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
-						if r and not playerChars[part] then
-							if (r.Position - pos).Magnitude < aaRange then
-								local ok = pcall(function() h:TakeDamage(5) end)
-								if not ok then pcall(function() h:BreakJoints() end) end
-							end
-						end
-					end
+			createZone()
+			updateZone()
+			if aaUpdateConn then aaUpdateConn:Disconnect() end
+			aaUpdateConn = rs.RenderStepped:Connect(updateZone)
+			if aaAttackConn then aaAttackConn:Disconnect() end
+			aaAttackConn = uis.InputBegan:Connect(function(input, processed)
+				if processed then return end
+				if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					aaAttack()
 				end
 			end)
 		else
 			aaStatus.Text = "OFF"
 			aaStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-			if aaHeartbeat then aaHeartbeat:Disconnect(); aaHeartbeat = nil end
+			if aaAttackConn then aaAttackConn:Disconnect(); aaAttackConn = nil end
+			if aaUpdateConn then aaUpdateConn:Disconnect(); aaUpdateConn = nil end
 			clearZone()
 		end
 	end)
@@ -649,8 +697,10 @@ local ok, err = pcall(function()
 		end
 		if saved then
 			warn("N1V1LON: log saved to " .. savePath)
+			chatLocal("N1V1LON: log saved (" .. #dataLines .. " lines)", Color3.fromRGB(100, 255, 100))
 		else
 			warn("N1V1LON: writefile not available, log below")
+			chatLocal("N1V1LON: writefile not available, check console", Color3.fromRGB(255, 100, 100))
 		end
 		warn("=== N1V1LON LOG ===")
 		warn(fullText)
