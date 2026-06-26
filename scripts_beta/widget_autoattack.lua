@@ -114,7 +114,9 @@ return function(container, player, uis, rs)
 								end
 							end
 
+							local myChar = player.Character
 							for _, part in ipairs(workspace:GetDescendants()) do
+								if part == myChar then continue end
 								local h = part:FindFirstChildOfClass("Humanoid")
 								if h and h.Health > 0 then
 									local root = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
