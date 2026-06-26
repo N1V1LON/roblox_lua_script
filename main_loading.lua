@@ -19,6 +19,21 @@ local ok, err = pcall(function()
 	local existing = pg:FindFirstChild("N1V1LON")
 	if existing then existing:Destroy() end
 
+	local blockUrl = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/users/players.lua"
+	local okB, blockRaw = pcall(function()
+		return game:HttpGet(blockUrl, true)
+	end)
+	if okB and blockRaw then
+		local okFn, playersTbl = pcall(loadstring, blockRaw)
+		if okFn and type(playersTbl) == "table" then
+			local pData = playersTbl[player.UserId]
+			if pData and pData.blocked == true then
+				warn("N1V1LON: blocked " .. player.Name .. " (" .. player.UserId .. ")")
+				return
+			end
+		end
+	end
+
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "N1V1LON"
 	gui.ResetOnSpawn = false
