@@ -90,6 +90,16 @@ local ok, err = pcall(function()
 	title.Font = Enum.Font.GothamBold
 	title.Parent = titleBar
 
+	local betaBtn = Instance.new("TextButton")
+	betaBtn.Size = UDim2.new(0, 28, 1, 0)
+	betaBtn.Position = UDim2.new(1, -96, 0, 0)
+	betaBtn.BackgroundTransparency = 1
+	betaBtn.Text = "β"
+	betaBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
+	betaBtn.TextSize = 18
+	betaBtn.Font = Enum.Font.GothamBold
+	betaBtn.Parent = titleBar
+
 	local logBtn = Instance.new("TextButton")
 	logBtn.Size = UDim2.new(0, 28, 1, 0)
 	logBtn.Position = UDim2.new(1, -64, 0, 0)
@@ -150,8 +160,8 @@ local ok, err = pcall(function()
 		table.insert(dataLines, "Build: beta (scripts_beta)")
 		table.insert(dataLines, "")
 		table.insert(dataLines, "--- Game Info ---")
-		local ok, gName = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name end)
-		table.insert(dataLines, "Game: " .. (ok and gName or "unknown"))
+		local okG, gName = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name end)
+		table.insert(dataLines, "Game: " .. (okG and gName or "unknown"))
 		table.insert(dataLines, "PlaceId: " .. game.PlaceId)
 		table.insert(dataLines, "JobId: " .. game.JobId)
 		table.insert(dataLines, "CreatorId: " .. game.CreatorId)
@@ -163,15 +173,9 @@ local ok, err = pcall(function()
 		local char = player.Character
 		if char then
 			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-			if root then
-				table.insert(dataLines, "Position: " .. tostring(root.Position))
-			end
-			table.insert(dataLines, "Character: " .. char.Name)
+			if root then table.insert(dataLines, "Position: " .. tostring(root.Position)) end
 			local hum = char:FindFirstChildOfClass("Humanoid")
-			if hum then
-				table.insert(dataLines, "Health: " .. hum.Health .. "/" .. hum.MaxHealth)
-				table.insert(dataLines, "WalkSpeed: " .. hum.WalkSpeed)
-			end
+			if hum then table.insert(dataLines, "Health: " .. hum.Health .. "/" .. hum.MaxHealth .. " WS:" .. hum.WalkSpeed) end
 		end
 		table.insert(dataLines, "")
 		table.insert(dataLines, "--- Inventory ---")
@@ -197,11 +201,10 @@ local ok, err = pcall(function()
 				local count = 0
 				for _, part in ipairs(workspace:GetDescendants()) do
 					if part:IsA("BasePart") and not part:IsA("Terrain") then
-						local dist = (part.Position - pos).Magnitude
-						if dist < 30 then
+						if (part.Position - pos).Magnitude < 30 then
 							count = count + 1
 							if count <= 50 then
-								table.insert(dataLines, "  " .. part.Name .. " (" .. part.ClassName .. ") at " .. tostring(part.Position))
+								table.insert(dataLines, "  " .. part.Name .. " (" .. part.ClassName .. ")")
 							end
 						end
 					end
@@ -233,32 +236,43 @@ local ok, err = pcall(function()
 
 		local saved = false
 		local savePath = ""
-
-		local attempts = {
-			"N1V1LON_log_save.txt",
-			"log_save.txt",
-			"logsave/log_save.txt",
-			"../N1V1LON_log_save.txt",
-		}
-		for _, path in ipairs(attempts) do
+		for _, path in ipairs({ "N1V1LON_log_save.txt", "log_save.txt", "logsave/log_save.txt" }) do
 			if not saved then
-				local okW = pcall(function()
-					writefile(path, fullText)
-					saved = true
-					savePath = path
-				end)
+				local okW = pcall(function() writefile(path, fullText); saved = true; savePath = path end)
 			end
 		end
 		if saved then
 			addLog("Saved to " .. savePath)
 			warn("N1V1LON: log saved to " .. savePath)
 		else
-			warn("N1V1LON: writefile not available, log printed below")
+			warn("N1V1LON: writefile not available, log below")
 		end
-
-		warn("=== N1V1LON LOG (" .. tostring(saved) .. ") ===")
+		warn("=== N1V1LON LOG ===")
 		warn(fullText)
 		warn("=== END LOG ===")
+	end)
+
+	betaBtn.MouseButton1Click:Connect(function()
+		addLog("β self-update triggered")
+		warn("N1V1LON: β self-update...")
+		if gui then pcall(function() gui:Destroy() end) end
+		if _G.N1V1LON.cleanup then
+			for _, fn in ipairs(_G.N1V1LON.cleanup) do
+				pcall(fn)
+			end
+		end
+		task.wait(0.3)
+		local url = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/test_loading.lua"
+		local okS, script = pcall(function()
+			return game:HttpGet(url, true)
+		end)
+		if okS and script then
+			local fn, errS = loadstring(script)
+			if fn then
+				_G.N1V1LON.cleanup = {}
+				task.spawn(fn)
+			end
+		end
 	end)
 end)
 
