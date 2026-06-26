@@ -47,7 +47,8 @@ menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 	Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, -40, 1, 0)
+	title.Size = UDim2.new(0, 100, 1, 0)
+	title.Position = UDim2.new(0, 130, 0, 0)
 	title.BackgroundTransparency = 1
 	title.Text = "N1V1LON"
 	title.TextColor3 = Color3.fromRGB(220, 220, 255)
@@ -55,6 +56,17 @@ menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Font = Enum.Font.GothamBold
 	title.Parent = titleBar
+
+	local version = Instance.new("TextLabel")
+	version.Size = UDim2.new(0, 120, 1, 0)
+	version.Position = UDim2.new(0, 8, 0, 0)
+	version.BackgroundTransparency = 1
+	version.Text = "v26.0.0.1-d"
+	version.TextColor3 = Color3.fromRGB(120, 120, 160)
+	version.TextSize = 10
+	version.TextXAlignment = Enum.TextXAlignment.Left
+	version.Font = Enum.Font.Gotham
+	version.Parent = titleBar
 
 	local closeBtn = Instance.new("TextButton")
 	closeBtn.Size = UDim2.new(0, 32, 1, 0)
