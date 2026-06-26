@@ -25,7 +25,7 @@ icon.TextSize = 28
 	icon.TextColor3 = Color3.fromRGB(220, 220, 255)
 	icon.TextSize = 48
 	icon.Font = Enum.Font.GothamBold
-icon.Draggable = true
+icon.Draggable = false
 icon.Parent = gui
 Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 12)
 
@@ -114,25 +114,31 @@ menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 
 	local infJumpOn = false
 	local infJumpConn = nil
+	local uis = game:GetService("UserInputService")
 
 	createButton("Infinite Jump", function(status)
 		infJumpOn = not infJumpOn
 		if infJumpOn then
-			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-			if hum then
-				hum.JumpPower = 100
+			local function apply(char)
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if hum then
+					hum.UseJumpPower = false
+				end
 			end
-			infJumpConn = player.CharacterAdded:Connect(function(c)
-				local h = c:WaitForChild("Humanoid")
-				h.JumpPower = 100
+			local char = player.Character
+			if char then apply(char) end
+			infJumpConn = player.CharacterAdded:Connect(apply)
+			uis.JumpRequest:Connect(function()
+				if infJumpOn then
+					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+					if hum then
+						hum:ChangeState(Enum.HumanoidStateType.Jumping)
+					end
+				end
 			end)
 			status.Text = "ON"
 			status.TextColor3 = Color3.fromRGB(60, 200, 120)
 		else
-			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-			if hum then
-				hum.JumpPower = 50
-			end
 			if infJumpConn then
 				infJumpConn:Disconnect()
 				infJumpConn = nil
