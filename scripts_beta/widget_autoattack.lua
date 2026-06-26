@@ -90,7 +90,7 @@ return function(container, player, uis, rs)
 											if (r.Position - pos).Magnitude < aaRange then
 												local ok = pcall(function() h:TakeDamage(5) end)
 												if not ok then
-													pcall(function() h.Health = h.Health - 5 end)
+													pcall(function() h.BreakJoints() end)
 												end
 											end
 										end
@@ -99,7 +99,7 @@ return function(container, player, uis, rs)
 							end
 						end
 					end
-					task.wait(0.1)
+					task.wait(0.05)
 				end
 				clearZone()
 			end)

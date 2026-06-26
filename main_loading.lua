@@ -280,6 +280,9 @@ local ok, err = pcall(function()
 
 	-- Auto Attack
 	local aaOn = false
+	local aaHeartbeat = nil
+	local aaRange = 30
+	local aaZoneParts = {}
 
 	local aaBtn = Instance.new("TextButton")
 	aaBtn.Size = UDim2.new(1, 0, 0, 32)
@@ -303,43 +306,68 @@ local ok, err = pcall(function()
 	aaStatus.Font = Enum.Font.GothamBold
 	aaStatus.Parent = aaBtn
 
+	local function clearZone()
+		for _, p in ipairs(aaZoneParts) do
+			pcall(function() p:Destroy() end)
+		end
+		aaZoneParts = {}
+	end
+
+	local function drawZone(posY)
+		clearZone()
+		for i = 1, 24 do
+			local angle = (i / 24) * math.pi * 2
+			local p = Instance.new("Part")
+			p.Size = Vector3.new(0.4, 0.1, 0.4)
+			p.Shape = Enum.PartType.Ball
+			p.Position = Vector3.new(math.cos(angle) * aaRange, posY, math.sin(angle) * aaRange)
+			p.Anchored = true
+			p.CanCollide = false
+			p.Transparency = 0.3
+			p.Color = Color3.fromRGB(255, 50, 50)
+			p.Material = Enum.Material.Neon
+			p.Parent = workspace
+			table.insert(aaZoneParts, p)
+		end
+	end
+
 	aaBtn.MouseButton1Click:Connect(function()
 		aaOn = not aaOn
 		if aaOn then
 			aaStatus.Text = "ON"
 			aaStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			task.spawn(function()
-				while aaOn do
-					local char = player.Character
-					if char then
-						local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-						if root then
-							local pos = root.Position
-							for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-								if p ~= player then
-									local c = p.Character
-									if c then
-										local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-										local h = c:FindFirstChildOfClass("Humanoid")
-										if r and h and h.Health > 0 then
-											if (r.Position - pos).Magnitude < 30 then
-												local ok = pcall(function() h:TakeDamage(5) end)
-												if not ok then
-													pcall(function() h.Health = h.Health - 5 end)
-												end
-											end
-										end
+			if aaHeartbeat then aaHeartbeat:Disconnect() end
+			aaHeartbeat = rs.Heartbeat:Connect(function()
+				if not aaOn then return end
+				local char = player.Character
+				if not char then return end
+				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+				if not root then return end
+				local pos = root.Position
+				drawZone(pos.Y - (root.Size.Y / 2) - 0.5)
+				for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+					if p ~= player then
+						local c = p.Character
+						if c then
+							local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
+							local h = c:FindFirstChildOfClass("Humanoid")
+							if r and h and h.Health > 0 then
+								if (r.Position - pos).Magnitude < aaRange then
+									local ok = pcall(function() h:TakeDamage(5) end)
+									if not ok then
+										pcall(function() h:BreakJoints() end)
 									end
 								end
 							end
 						end
 					end
-					task.wait(0.1)
 				end
 			end)
 		else
 			aaStatus.Text = "OFF"
 			aaStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
+			if aaHeartbeat then aaHeartbeat:Disconnect(); aaHeartbeat = nil end
+			clearZone()
 		end
 	end)
 
