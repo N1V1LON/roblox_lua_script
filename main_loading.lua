@@ -73,3 +73,5 @@ Instance.new("UIListLayout", container).Padding = UDim.new(0, 6)
 icon.MouseButton1Click:Connect(function()
 	menu.Visible = not menu.Visible
 end)
+
+print("N1V1LON loaded")
