@@ -1,3 +1,15 @@
+local uis = game:GetService("UserInputService")
+local rs = game:GetService("RunService")
+
+-- Cleanup old event connections on re-run
+_G.N1V1LON = _G.N1V1LON or {}
+if _G.N1V1LON.cleanup then
+	for _, fn in ipairs(_G.N1V1LON.cleanup) do
+		pcall(fn)
+	end
+end
+_G.N1V1LON.cleanup = {}
+
 local ok, err = pcall(function()
 	local player = game:GetService("Players").LocalPlayer
 	if not player then
@@ -160,8 +172,6 @@ local ok, err = pcall(function()
 	local infJumpOn = false
 	local infJumpConn = nil
 	local jumpReqConn = nil
-	local uis = game:GetService("UserInputService")
-	local rs = game:GetService("RunService")
 
 	createButton("Infinite Jump", function(status)
 		infJumpOn = not infJumpOn
@@ -182,6 +192,10 @@ local ok, err = pcall(function()
 						hum:ChangeState(Enum.HumanoidStateType.Jumping)
 					end
 				end
+			end)
+			table.insert(_G.N1V1LON.cleanup, function()
+				if jumpReqConn then jumpReqConn:Disconnect() end
+				if infJumpConn then infJumpConn:Disconnect() end
 			end)
 			status.Text = "ON"
 			status.TextColor3 = Color3.fromRGB(60, 200, 120)
