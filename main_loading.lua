@@ -5,34 +5,42 @@ local ok, err = pcall(function()
 		return
 	end
 
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "N1V1LON"
-	gui.ResetOnSpawn = false
-	gui.Parent = player:WaitForChild("PlayerGui", 10)
-	if not gui.Parent then
+	local pg = player:WaitForChild("PlayerGui", 10)
+	if not pg then
 		warn("N1V1LON: No PlayerGui")
 		return
 	end
 
+	local existing = pg:FindFirstChild("N1V1LON")
+	if existing then
+		local icon = existing:FindFirstChild("Icon")
+		if icon then icon.Visible = true end
+		return
+	end
+
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "N1V1LON"
+	gui.ResetOnSpawn = false
+	gui.Parent = pg
+
 	local icon = Instance.new("TextButton")
 	icon.Name = "Icon"
-icon.Size = UDim2.new(0, 48, 0, 48)
-icon.Position = UDim2.new(1, -68, 0, 20)
-icon.TextSize = 28
+	icon.Size = UDim2.new(0, 48, 0, 48)
+	icon.Position = UDim2.new(1, -68, 0, 20)
 	icon.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 	icon.BorderSizePixel = 0
 	icon.Text = "N"
 	icon.TextColor3 = Color3.fromRGB(220, 220, 255)
-	icon.TextSize = 48
+	icon.TextSize = 28
 	icon.Font = Enum.Font.GothamBold
-icon.Draggable = true
-icon.Parent = gui
-Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 12)
+	icon.Draggable = true
+	icon.Parent = gui
+	Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 12)
 
 	local menu = Instance.new("Frame")
 	menu.Name = "Menu"
-menu.Size = UDim2.new(0, 300, 0, 250)
-menu.Position = UDim2.new(0.5, -150, 0.5, -125)
+	menu.Size = UDim2.new(0, 300, 0, 250)
+	menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 	menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 	menu.BorderSizePixel = 0
 	menu.Visible = false
@@ -46,27 +54,47 @@ menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 	titleBar.Parent = menu
 	Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
 
-	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(0, 100, 1, 0)
-	title.Position = UDim2.new(0, 130, 0, 0)
-	title.BackgroundTransparency = 1
-	title.Text = "N1V1LON"
-	title.TextColor3 = Color3.fromRGB(220, 220, 255)
-	title.TextSize = 15
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.Font = Enum.Font.GothamBold
-	title.Parent = titleBar
-
 	local version = Instance.new("TextLabel")
-	version.Size = UDim2.new(0, 120, 1, 0)
+	version.Size = UDim2.new(0, 100, 1, 0)
 	version.Position = UDim2.new(0, 8, 0, 0)
 	version.BackgroundTransparency = 1
-	version.Text = "v26.0.0.1-d"
+	version.Text = "v26.0.1.1D"
 	version.TextColor3 = Color3.fromRGB(120, 120, 160)
 	version.TextSize = 10
 	version.TextXAlignment = Enum.TextXAlignment.Left
 	version.Font = Enum.Font.Gotham
 	version.Parent = titleBar
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(0, 70, 1, 0)
+	title.Position = UDim2.new(0, 110, 0, 0)
+	title.BackgroundTransparency = 1
+	title.Text = "N1V1LON"
+	title.TextColor3 = Color3.fromRGB(220, 220, 255)
+	title.TextSize = 13
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Font = Enum.Font.GothamBold
+	title.Parent = titleBar
+
+	local modeToggle = Instance.new("TextButton")
+	modeToggle.Size = UDim2.new(0, 28, 1, 0)
+	modeToggle.Position = UDim2.new(1, -96, 0, 0)
+	modeToggle.BackgroundTransparency = 1
+	modeToggle.Text = "*"
+	modeToggle.TextColor3 = Color3.fromRGB(160, 160, 200)
+	modeToggle.TextSize = 16
+	modeToggle.Font = Enum.Font.GothamBold
+	modeToggle.Parent = titleBar
+
+	local stopBtn = Instance.new("TextButton")
+	stopBtn.Size = UDim2.new(0, 28, 1, 0)
+	stopBtn.Position = UDim2.new(1, -64, 0, 0)
+	stopBtn.BackgroundTransparency = 1
+	stopBtn.Text = "<"
+	stopBtn.TextColor3 = Color3.fromRGB(200, 200, 100)
+	stopBtn.TextSize = 18
+	stopBtn.Font = Enum.Font.GothamBold
+	stopBtn.Parent = titleBar
 
 	local closeBtn = Instance.new("TextButton")
 	closeBtn.Size = UDim2.new(0, 32, 1, 0)
@@ -77,8 +105,26 @@ menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 	closeBtn.TextSize = 18
 	closeBtn.Font = Enum.Font.GothamBold
 	closeBtn.Parent = titleBar
+
 	closeBtn.MouseButton1Click:Connect(function()
 		menu.Visible = false
+	end)
+
+	local stopped = false
+	stopBtn.MouseButton1Click:Connect(function()
+		stopped = not stopped
+		if stopped then
+			gui.Enabled = false
+			stopBtn.Text = ">"
+		else
+			gui.Enabled = true
+			stopBtn.Text = "<"
+		end
+	end)
+
+	local isSettings = false
+	modeToggle.MouseButton1Click:Connect(function()
+		isSettings = not isSettings
 	end)
 
 	local container = Instance.new("ScrollingFrame")
