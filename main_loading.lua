@@ -57,7 +57,7 @@ local ok, err = pcall(function()
 
 	local menu = Instance.new("Frame")
 	menu.Name = "Menu"
-	menu.Size = UDim2.new(0, 300, 0, 380)
+	menu.Size = UDim2.new(0, 300, 0, 250)
 	menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 	menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 	menu.BorderSizePixel = 0
@@ -76,7 +76,7 @@ local ok, err = pcall(function()
 	version.Size = UDim2.new(0, 100, 1, 0)
 	version.Position = UDim2.new(0, 8, 0, 0)
 	version.BackgroundTransparency = 1
-	version.Text = "v26.1.3.7 Beta"
+	version.Text = "v26.1.3.5 Realse"
 	version.TextColor3 = Color3.fromRGB(120, 120, 160)
 	version.TextSize = 10
 	version.TextXAlignment = Enum.TextXAlignment.Left
@@ -87,7 +87,7 @@ local ok, err = pcall(function()
 	title.Size = UDim2.new(0, 140, 1, 0)
 	title.Position = UDim2.new(0, 110, 0, 0)
 	title.BackgroundTransparency = 1
-	title.Text = "N1V1LON v26.1.3.7 Beta"
+	title.Text = "N1V1LON v26.1.3.5 Realse"
 	title.TextColor3 = Color3.fromRGB(220, 220, 255)
 	title.TextSize = 11
 	title.TextXAlignment = Enum.TextXAlignment.Left
@@ -141,7 +141,78 @@ local ok, err = pcall(function()
 		end
 	end)
 
-	-- Speed
+	local function createButton(text, callback)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 32)
+		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+		btn.BorderSizePixel = 0
+		btn.Text = "  " .. text
+		btn.TextColor3 = Color3.fromRGB(200, 200, 220)
+		btn.TextSize = 13
+		btn.TextXAlignment = Enum.TextXAlignment.Left
+		btn.Font = Enum.Font.Gotham
+		btn.Parent = container
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
+		local status = Instance.new("TextLabel")
+		status.Size = UDim2.new(0, 50, 1, 0)
+		status.Position = UDim2.new(1, -55, 0, 0)
+		status.BackgroundTransparency = 1
+		status.Text = "OFF"
+		status.TextColor3 = Color3.fromRGB(140, 60, 60)
+		status.TextSize = 12
+		status.Font = Enum.Font.GothamBold
+		status.Parent = btn
+
+		btn.MouseButton1Click:Connect(function()
+			callback(status)
+		end)
+	end
+
+	local infJumpOn = false
+	local infJumpConn = nil
+	local jumpReqConn = nil
+
+	createButton("Infinite Jump", function(status)
+		infJumpOn = not infJumpOn
+		if infJumpOn then
+			local function apply(char)
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if hum then
+					hum.UseJumpPower = false
+				end
+			end
+			local char = player.Character
+			if char then apply(char) end
+			infJumpConn = player.CharacterAdded:Connect(apply)
+			jumpReqConn = uis.JumpRequest:Connect(function()
+				if infJumpOn then
+					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+					if hum then
+						hum:ChangeState(Enum.HumanoidStateType.Jumping)
+					end
+				end
+			end)
+			table.insert(_G.N1V1LON.cleanup, function()
+				if jumpReqConn then jumpReqConn:Disconnect() end
+				if infJumpConn then infJumpConn:Disconnect() end
+			end)
+			status.Text = "ON"
+			status.TextColor3 = Color3.fromRGB(60, 200, 120)
+		else
+			if infJumpConn then
+				infJumpConn:Disconnect()
+				infJumpConn = nil
+			end
+			if jumpReqConn then
+				jumpReqConn:Disconnect()
+				jumpReqConn = nil
+			end
+			status.Text = "OFF"
+			status.TextColor3 = Color3.fromRGB(140, 60, 60)
+		end
+	end)
+
 	local speedOn = false
 	local speedVal = 32
 	local speedHeartbeat = nil
@@ -164,7 +235,7 @@ local ok, err = pcall(function()
 	spdLabel.Font = Enum.Font.Gotham
 	spdLabel.Parent = spdBtn
 
-	local spdStatus = Instance.new("TextLabel")
+	local spdStatus = Instance.new("TextButton")
 	spdStatus.Size = UDim2.new(0, 50, 0, 20)
 	spdStatus.Position = UDim2.new(1, -55, 0, 4)
 	spdStatus.BackgroundTransparency = 1
@@ -216,18 +287,12 @@ local ok, err = pcall(function()
 	local function applySpeed()
 		if not speedOn then return end
 		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if hum then hum.WalkSpeed = speedVal end
+		if hum then
+			hum.WalkSpeed = speedVal
+		end
 	end
 
-	-- Click entire Speed area to toggle
-	local spdClick = Instance.new("TextButton")
-	spdClick.Size = UDim2.new(1, 0, 1, 0)
-	spdClick.BackgroundTransparency = 1
-	spdClick.Text = ""
-	spdClick.AutoButtonColor = false
-	spdClick.Parent = spdBtn
-
-	spdClick.MouseButton1Click:Connect(function()
+	spdStatus.MouseButton1Click:Connect(function()
 		speedOn = not speedOn
 		if speedOn then
 			applySpeed()
@@ -248,130 +313,118 @@ local ok, err = pcall(function()
 		end
 	end)
 
-	-- Row: Infinite Jump + Auto Attack
-	local row2 = Instance.new("Frame")
-	row2.Size = UDim2.new(1, 0, 0, 40)
-	row2.BackgroundTransparency = 1
-	row2.Parent = container
-	local row2Layout = Instance.new("UIListLayout")
-	row2Layout.FillDirection = Enum.FillDirection.Horizontal
-	row2Layout.Padding = UDim.new(0, 6)
-	row2Layout.Parent = row2
+	local checkpoints = {}
 
-	local function makeHalfCard(parent, label, val, valColor)
-		local card = Instance.new("Frame")
-		card.Size = UDim2.new(0.5, -3, 1, 0)
-		card.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-		card.BorderSizePixel = 0
-		card.Parent = parent
-		Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
+	local cpFrame = Instance.new("Frame")
+	cpFrame.Size = UDim2.new(1, 0, 0, 120)
+	cpFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	cpFrame.BorderSizePixel = 0
+	cpFrame.Parent = container
+	Instance.new("UICorner", cpFrame).CornerRadius = UDim.new(0, 6)
 
-		local lbl = Instance.new("TextLabel")
-		lbl.Size = UDim2.new(0, 120, 1, 0)
-		lbl.Position = UDim2.new(0, 8, 0, 0)
-		lbl.BackgroundTransparency = 1
-		lbl.Text = "  " .. label
-		lbl.TextColor3 = Color3.fromRGB(200, 200, 220)
-		lbl.TextSize = 13
-		lbl.TextXAlignment = Enum.TextXAlignment.Left
-		lbl.Font = Enum.Font.Gotham
-		lbl.Parent = card
+	local cpHeader = Instance.new("Frame")
+	cpHeader.Size = UDim2.new(1, 0, 0, 20)
+	cpHeader.BackgroundTransparency = 1
+	cpHeader.Parent = cpFrame
 
-		local st = Instance.new("TextLabel")
-		st.Size = UDim2.new(0, 50, 1, 0)
-		st.Position = UDim2.new(1, -55, 0, 0)
-		st.BackgroundTransparency = 1
-		st.Text = val or "OFF"
-		st.TextColor3 = valColor or Color3.fromRGB(140, 60, 60)
-		st.TextSize = 12
-		st.Font = Enum.Font.GothamBold
-		st.Parent = card
+	local cpLabel = Instance.new("TextLabel")
+	cpLabel.Size = UDim2.new(0, 140, 1, 0)
+	cpLabel.Position = UDim2.new(0, 8, 0, 0)
+	cpLabel.BackgroundTransparency = 1
+	cpLabel.Text = "  Checkpoints"
+	cpLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+	cpLabel.TextSize = 13
+	cpLabel.TextXAlignment = Enum.TextXAlignment.Left
+	cpLabel.Font = Enum.Font.Gotham
+	cpLabel.Parent = cpHeader
 
-		local click = Instance.new("TextButton")
-		click.Size = UDim2.new(1, 0, 1, 0)
-		click.BackgroundTransparency = 1
-		click.Text = ""
-		click.AutoButtonColor = false
-		click.Parent = card
+	local cpAddBtn = Instance.new("TextButton")
+	cpAddBtn.Size = UDim2.new(0, 20, 0, 20)
+	cpAddBtn.Position = UDim2.new(1, -26, 0, 0)
+	cpAddBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+	cpAddBtn.BorderSizePixel = 0
+	cpAddBtn.Text = "+"
+	cpAddBtn.TextColor3 = Color3.fromRGB(160, 200, 160)
+	cpAddBtn.TextSize = 14
+	cpAddBtn.Font = Enum.Font.GothamBold
+	cpAddBtn.Parent = cpHeader
+	Instance.new("UICorner", cpAddBtn).CornerRadius = UDim.new(0, 3)
 
-		return { card = card, status = st, click = click }
-	end
+	local cpList = Instance.new("ScrollingFrame")
+	cpList.Size = UDim2.new(1, -8, 1, -24)
+	cpList.Position = UDim2.new(0, 4, 0, 22)
+	cpList.BackgroundTransparency = 1
+	cpList.BorderSizePixel = 0
+	cpList.ScrollBarThickness = 3
+	cpList.CanvasSize = UDim2.new(0, 0, 0, 0)
+	cpList.Parent = cpFrame
+	local cpLayout = Instance.new("UIListLayout")
+	cpLayout.FillDirection = Enum.FillDirection.Vertical
+	cpLayout.Padding = UDim.new(0, 2)
+	cpLayout.Parent = cpList
 
-	-- Infinite Jump
-	local infJumpOn = false
-	local infJumpConn = nil
-	local jumpReqConn = nil
+	local function addCP()
+		local char = player.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+		if not root then return end
 
-	local inf = makeHalfCard(row2, "Infinite Jump")
-	inf.click.MouseButton1Click:Connect(function()
-		infJumpOn = not infJumpOn
-		if infJumpOn then
-			local function apply(char)
-				local hum = char:FindFirstChildOfClass("Humanoid")
-				if hum then hum.UseJumpPower = false end
-			end
-			local char = player.Character
-			if char then apply(char) end
-			infJumpConn = player.CharacterAdded:Connect(apply)
-			jumpReqConn = uis.JumpRequest:Connect(function()
-				if infJumpOn then
-					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-					if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-				end
-			end)
-			table.insert(_G.N1V1LON.cleanup, function()
-				if jumpReqConn then jumpReqConn:Disconnect() end
-				if infJumpConn then infJumpConn:Disconnect() end
-			end)
-			inf.status.Text = "ON"
-			inf.status.TextColor3 = Color3.fromRGB(60, 200, 120)
-		else
-			if infJumpConn then infJumpConn:Disconnect(); infJumpConn = nil end
-			if jumpReqConn then jumpReqConn:Disconnect(); jumpReqConn = nil end
-			inf.status.Text = "OFF"
-			inf.status.TextColor3 = Color3.fromRGB(140, 60, 60)
-		end
-	end)
+		local pos = root.Position
+		local id = #checkpoints + 1
 
-	-- Auto Attack
-	local aaOn = false
-	local aaHeartbeat = nil
+		local row = Instance.new("TextButton")
+		row.Size = UDim2.new(1, -6, 0, 22)
+		row.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+		row.BorderSizePixel = 0
+		row.Text = "  CP" .. tostring(id) .. "  (" .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z) .. ")"
+		row.TextColor3 = Color3.fromRGB(200, 200, 220)
+		row.TextSize = 11
+		row.Font = Enum.Font.Gotham
+		row.TextXAlignment = Enum.TextXAlignment.Left
+		row.Parent = cpList
+		Instance.new("UICorner", row).CornerRadius = UDim.new(0, 3)
 
-	local aa = makeHalfCard(row2, "Auto Attack")
-	aa.click.MouseButton1Click:Connect(function()
-		aaOn = not aaOn
-		if aaOn then
-			aa.status.Text = "ON"
-			aa.status.TextColor3 = Color3.fromRGB(60, 200, 120)
-			if aaHeartbeat then aaHeartbeat:Disconnect() end
-			aaHeartbeat = rs.Heartbeat:Connect(function()
-				if not aaOn then return end
-				local char = player.Character
-				if not char then return end
-				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-				if not root then return end
-				local pos = root.Position
-				for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-					if p ~= player then
-						local c = p.Character
-						if c then
-							local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-							local h = c:FindFirstChildOfClass("Humanoid")
-							if r and h and h.Health > 0 then
-								if (r.Position - pos).Magnitude < 30 then
-									h:TakeDamage(5)
-								end
-							end
+		local entry = { pos = pos, row = row }
+		checkpoints[id] = entry
+
+		local held = false
+		local holdTask = nil
+
+		row.MouseButton1Down:Connect(function()
+			held = false
+			holdTask = task.delay(0.5, function()
+				held = true
+				row.BackgroundColor3 = Color3.fromRGB(80, 40, 40)
+				task.delay(0.6, function()
+					row:Destroy()
+					for i, e in ipairs(checkpoints) do
+						if e == entry then
+							table.remove(checkpoints, i)
+							break
 						end
 					end
-				end
+				end)
 			end)
-		else
-			aa.status.Text = "OFF"
-			aa.status.TextColor3 = Color3.fromRGB(140, 60, 60)
-			if aaHeartbeat then aaHeartbeat:Disconnect(); aaHeartbeat = nil end
-		end
-	end)
+		end)
+
+		row.MouseButton1Up:Connect(function()
+			if holdTask then
+				task.cancel(holdTask)
+				holdTask = nil
+			end
+			if not held then
+				local c = player.Character
+				if c then
+					local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
+					if r then
+						r.Position = entry.pos
+					end
+				end
+			end
+		end)
+	end
+
+	cpAddBtn.MouseButton1Click:Connect(addCP)
 end)
 
 if not ok then
