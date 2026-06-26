@@ -1,0 +1,12 @@
+{
+  "name": "roblox-lua-script",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Main": {
+        "$path": "src/main.server.lua"
+      }
+    }
+  }
+}
