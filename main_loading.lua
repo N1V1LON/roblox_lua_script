@@ -1,57 +1,169 @@
-print("[DEBUG]: Main Loading -> Start")
+local player = game:GetService("Players").LocalPlayer
 
-local BASE = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/"
-local Player = game:GetService("Players").LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "N1V1LON"
+gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
 
-print("[DEBUG]: Player -> " .. Player.Name)
+local icon = Instance.new("TextButton")
+icon.Name = "Icon"
+icon.Size = UDim2.new(0, 16, 0, 16)
+icon.Position = UDim2.new(0, 10, 0.5, -8)
+icon.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+icon.BorderSizePixel = 0
+icon.Text = "N"
+icon.TextColor3 = Color3.fromRGB(220, 220, 255)
+icon.TextSize = 10
+icon.Font = Enum.Font.GothamBold
+icon.Draggable = true
+icon.Parent = gui
+Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 4)
 
-local N1V1LON = {
-	Player = Player,
-	Menu = nil,
-	Container = nil,
-	Icon = nil,
-	CreateButton = nil,
-}
+local menu = Instance.new("Frame")
+menu.Name = "Menu"
+menu.Size = UDim2.new(0, 450, 0, 350)
+menu.Position = UDim2.new(0.5, -225, 0.5, -175)
+menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+menu.BorderSizePixel = 0
+menu.Visible = false
+menu.Parent = gui
+Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 10)
 
-getgenv().N1V1LON = N1V1LON
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 32)
+titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = menu
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
 
-print("[DEBUG]: Loading gui.lua...")
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 1, 0)
+title.BackgroundTransparency = 1
+title.Text = "N1V1LON"
+title.TextColor3 = Color3.fromRGB(220, 220, 255)
+title.TextSize = 15
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Font = Enum.Font.GothamBold
+title.Parent = titleBar
 
-local ok1, err1 = pcall(function()
-	local guiCode = game:HttpGet(BASE .. "gui.lua", true)
-	if guiCode then
-		print("[DEBUG]: gui.lua fetched, executing...")
-		loadstring(guiCode)()
-		print("[DEBUG]: gui.lua executed")
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 32, 1, 0)
+closeBtn.Position = UDim2.new(1, -32, 0, 0)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(200, 60, 60)
+closeBtn.TextSize = 18
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = titleBar
+closeBtn.MouseButton1Click:Connect(function()
+	menu.Visible = false
+end)
+
+local container = Instance.new("ScrollingFrame")
+container.Size = UDim2.new(1, -20, 1, -52)
+container.Position = UDim2.new(0, 10, 0, 42)
+container.BackgroundTransparency = 1
+container.BorderSizePixel = 0
+container.ScrollBarThickness = 4
+container.CanvasSize = UDim2.new(0, 0, 0, 0)
+container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+container.Parent = menu
+Instance.new("UIListLayout", container).Padding = UDim.new(0, 6)
+
+icon.MouseButton1Click:Connect(function()
+	menu.Visible = not menu.Visible
+end)
+
+local function createButton(text, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 32)
+	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	btn.BorderSizePixel = 0
+	btn.Text = "  " .. text
+	btn.TextColor3 = Color3.fromRGB(200, 200, 220)
+	btn.TextSize = 13
+	btn.TextXAlignment = Enum.TextXAlignment.Left
+	btn.Font = Enum.Font.Gotham
+	btn.AutoButtonColor = true
+	btn.Parent = container
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
+	local status = Instance.new("TextLabel")
+	status.Size = UDim2.new(0, 50, 1, 0)
+	status.Position = UDim2.new(1, -55, 0, 0)
+	status.BackgroundTransparency = 1
+	status.Text = "OFF"
+	status.TextColor3 = Color3.fromRGB(140, 60, 60)
+	status.TextSize = 12
+	status.Font = Enum.Font.GothamBold
+	status.Parent = btn
+
+	btn.MouseButton1Click:Connect(function()
+		callback(status)
+	end)
+
+	return btn, status
+end
+
+local infJumpEnabled = false
+local infJumpConn = nil
+
+createButton("Infinite Jump", function(status)
+	infJumpEnabled = not infJumpEnabled
+	if infJumpEnabled then
+		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.JumpPower = 100
+			hum.JumpHeight = 50
+		end
+		infJumpConn = player.CharacterAdded:Connect(function(c)
+			local h = c:WaitForChild("Humanoid")
+			h.JumpPower = 100
+			h.JumpHeight = 50
+		end)
+		status.Text = "ON"
+		status.TextColor3 = Color3.fromRGB(60, 200, 120)
 	else
-		error("gui.lua is nil")
+		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.JumpPower = 50
+			hum.JumpHeight = 7.2
+		end
+		if infJumpConn then
+			infJumpConn:Disconnect()
+			infJumpConn = nil
+		end
+		status.Text = "OFF"
+		status.TextColor3 = Color3.fromRGB(140, 60, 60)
 	end
 end)
 
-if not ok1 then
-	print("[DEBUG]: gui.lua ERROR -> " .. tostring(err1))
-else
-	print("[DEBUG]: gui.lua OK")
-end
+local speedEnabled = false
+local speedConn = nil
 
-local Scripts = {
-	"scripts/infjump.lua",
-	"scripts/speed.lua",
-}
-
-print("[DEBUG]: Loading scripts...")
-
-for _, name in ipairs(Scripts) do
-	print("[DEBUG]: Loading " .. name .. "...")
-	pcall(function()
-		local code = game:HttpGet(BASE .. name, true)
-		if code then
-			loadstring(code)()
-			print("[DEBUG]: " .. name .. " OK")
-		else
-			print("[DEBUG]: " .. name .. " is nil")
+createButton("Speed x2", function(status)
+	speedEnabled = not speedEnabled
+	if speedEnabled then
+		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.WalkSpeed = 32
 		end
-	end)
-end
-
-print("[DEBUG]: Main Loading -> Done")
+		speedConn = player.CharacterAdded:Connect(function(c)
+			local h = c:WaitForChild("Humanoid")
+			h.WalkSpeed = 32
+		end)
+		status.Text = "ON"
+		status.TextColor3 = Color3.fromRGB(60, 200, 120)
+	else
+		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.WalkSpeed = 16
+		end
+		if speedConn then
+			speedConn:Disconnect()
+			speedConn = nil
+		end
+		status.Text = "OFF"
+		status.TextColor3 = Color3.fromRGB(140, 60, 60)
+	end
+end)
