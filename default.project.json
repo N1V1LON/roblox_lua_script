@@ -4,11 +4,17 @@
     "$className": "DataModel",
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "Main": {
-        "$path": "src/main.server.lua"
-      },
       "Loader": {
         "$path": "main_loading.lua"
+      },
+      "Main": {
+        "$path": "src/main.server.lua"
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "GUI": {
+        "$path": "src/gui.client.lua"
       }
     }
   }

@@ -1,4 +1,5 @@
 local SCRIPTS = {
+	GUI = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/src/gui.client.lua",
 	Main = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/src/main.server.lua",
 }
 
