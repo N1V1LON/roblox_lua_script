@@ -1,5 +1,3 @@
-print("[N1V1LON] Starting...")
-
 local player = game:GetService("Players").LocalPlayer
 
 local gui = Instance.new("ScreenGui")
@@ -19,7 +17,6 @@ icon.TextSize = 10
 icon.Font = Enum.Font.GothamBold
 icon.Draggable = true
 icon.Parent = gui
-
 Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 4)
 
 local menu = Instance.new("Frame")
@@ -30,7 +27,6 @@ menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 menu.BorderSizePixel = 0
 menu.Visible = false
 menu.Parent = gui
-
 Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 10)
 
 local titleBar = Instance.new("Frame")
@@ -38,7 +34,6 @@ titleBar.Size = UDim2.new(1, 0, 0, 32)
 titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = menu
-
 Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
 
 local title = Instance.new("TextLabel")
@@ -60,7 +55,6 @@ closeBtn.TextColor3 = Color3.fromRGB(200, 60, 60)
 closeBtn.TextSize = 18
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.Parent = titleBar
-
 closeBtn.MouseButton1Click:Connect(function()
 	menu.Visible = false
 end)
@@ -74,38 +68,11 @@ container.ScrollBarThickness = 4
 container.CanvasSize = UDim2.new(0, 0, 0, 0)
 container.AutomaticCanvasSize = Enum.AutomaticSize.Y
 container.Parent = menu
-
 Instance.new("UIListLayout", container).Padding = UDim.new(0, 6)
 
-local infJumpEnabled = false
-local infJumpConn = nil
-
-local function toggleInfJump()
-	infJumpEnabled = not infJumpEnabled
-
-	if infJumpEnabled then
-		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			humanoid.JumpPower = 100
-			humanoid.JumpHeight = 50
-		end
-		infJumpConn = player.CharacterAdded:Connect(function(char)
-			local hum = char:WaitForChild("Humanoid")
-			hum.JumpPower = 100
-			hum.JumpHeight = 50
-		end)
-	else
-		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			humanoid.JumpPower = 50
-			humanoid.JumpHeight = 7.2
-		end
-		if infJumpConn then
-			infJumpConn:Disconnect()
-			infJumpConn = nil
-		end
-	end
-end
+icon.MouseButton1Click:Connect(function()
+	menu.Visible = not menu.Visible
+end)
 
 local function createButton(text, callback)
 	local btn = Instance.new("TextButton")
@@ -119,7 +86,6 @@ local function createButton(text, callback)
 	btn.Font = Enum.Font.Gotham
 	btn.AutoButtonColor = true
 	btn.Parent = container
-
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 
 	local status = Instance.new("TextLabel")
@@ -139,19 +105,35 @@ local function createButton(text, callback)
 	return btn, status
 end
 
+local infJumpEnabled = false
+local infJumpConn = nil
+
 createButton("Infinite Jump", function(status)
-	toggleInfJump()
+	infJumpEnabled = not infJumpEnabled
 	if infJumpEnabled then
+		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.JumpPower = 100
+			hum.JumpHeight = 50
+		end
+		infJumpConn = player.CharacterAdded:Connect(function(c)
+			local h = c:WaitForChild("Humanoid")
+			h.JumpPower = 100
+			h.JumpHeight = 50
+		end)
 		status.Text = "ON"
 		status.TextColor3 = Color3.fromRGB(60, 200, 120)
 	else
+		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.JumpPower = 50
+			hum.JumpHeight = 7.2
+		end
+		if infJumpConn then
+			infJumpConn:Disconnect()
+			infJumpConn = nil
+		end
 		status.Text = "OFF"
 		status.TextColor3 = Color3.fromRGB(140, 60, 60)
 	end
 end)
-
-icon.MouseButton1Click:Connect(function()
-	menu.Visible = not menu.Visible
-end)
-
-print("[N1V1LON] Loaded")
