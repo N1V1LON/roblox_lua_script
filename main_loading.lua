@@ -114,6 +114,7 @@ menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 
 	local infJumpOn = false
 	local infJumpConn = nil
+	local jumpReqConn = nil
 	local uis = game:GetService("UserInputService")
 
 	createButton("Infinite Jump", function(status)
@@ -128,7 +129,7 @@ menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 			local char = player.Character
 			if char then apply(char) end
 			infJumpConn = player.CharacterAdded:Connect(apply)
-			uis.JumpRequest:Connect(function()
+			jumpReqConn = uis.JumpRequest:Connect(function()
 				if infJumpOn then
 					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 					if hum then
@@ -142,6 +143,10 @@ menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 			if infJumpConn then
 				infJumpConn:Disconnect()
 				infJumpConn = nil
+			end
+			if jumpReqConn then
+				jumpReqConn:Disconnect()
+				jumpReqConn = nil
 			end
 			status.Text = "OFF"
 			status.TextColor3 = Color3.fromRGB(140, 60, 60)
