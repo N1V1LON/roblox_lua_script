@@ -83,6 +83,64 @@ menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 	icon.MouseButton1Click:Connect(function()
 		menu.Visible = not menu.Visible
 	end)
+
+	local function createButton(text, callback)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 32)
+		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+		btn.BorderSizePixel = 0
+		btn.Text = "  " .. text
+		btn.TextColor3 = Color3.fromRGB(200, 200, 220)
+		btn.TextSize = 13
+		btn.TextXAlignment = Enum.TextXAlignment.Left
+		btn.Font = Enum.Font.Gotham
+		btn.Parent = container
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
+		local status = Instance.new("TextLabel")
+		status.Size = UDim2.new(0, 50, 1, 0)
+		status.Position = UDim2.new(1, -55, 0, 0)
+		status.BackgroundTransparency = 1
+		status.Text = "OFF"
+		status.TextColor3 = Color3.fromRGB(140, 60, 60)
+		status.TextSize = 12
+		status.Font = Enum.Font.GothamBold
+		status.Parent = btn
+
+		btn.MouseButton1Click:Connect(function()
+			callback(status)
+		end)
+	end
+
+	local infJumpOn = false
+	local infJumpConn = nil
+
+	createButton("Infinite Jump", function(status)
+		infJumpOn = not infJumpOn
+		if infJumpOn then
+			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			if hum then
+				hum.JumpPower = 100
+			end
+			infJumpConn = player.CharacterAdded:Connect(function(c)
+				local h = c:WaitForChild("Humanoid")
+				h.JumpPower = 100
+			end)
+			status.Text = "ON"
+			status.TextColor3 = Color3.fromRGB(60, 200, 120)
+		else
+			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			if hum then
+				hum.JumpPower = 50
+			end
+			if infJumpConn then
+				infJumpConn:Disconnect()
+				infJumpConn = nil
+			end
+			status.Text = "OFF"
+			status.TextColor3 = Color3.fromRGB(140, 60, 60)
+		end
+	end)
 end)
 
 if not ok then
