@@ -77,6 +77,79 @@ container.Parent = menu
 
 Instance.new("UIListLayout", container).Padding = UDim.new(0, 6)
 
+local infJumpEnabled = false
+local infJumpConn = nil
+
+local function toggleInfJump()
+	infJumpEnabled = not infJumpEnabled
+
+	if infJumpEnabled then
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.JumpPower = 100
+			humanoid.JumpHeight = 50
+		end
+		infJumpConn = player.CharacterAdded:Connect(function(char)
+			local hum = char:WaitForChild("Humanoid")
+			hum.JumpPower = 100
+			hum.JumpHeight = 50
+		end)
+	else
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.JumpPower = 50
+			humanoid.JumpHeight = 7.2
+		end
+		if infJumpConn then
+			infJumpConn:Disconnect()
+			infJumpConn = nil
+		end
+	end
+end
+
+local function createButton(text, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 32)
+	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	btn.BorderSizePixel = 0
+	btn.Text = "  " .. text
+	btn.TextColor3 = Color3.fromRGB(200, 200, 220)
+	btn.TextSize = 13
+	btn.TextXAlignment = Enum.TextXAlignment.Left
+	btn.Font = Enum.Font.Gotham
+	btn.AutoButtonColor = true
+	btn.Parent = container
+
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
+	local status = Instance.new("TextLabel")
+	status.Size = UDim2.new(0, 50, 1, 0)
+	status.Position = UDim2.new(1, -55, 0, 0)
+	status.BackgroundTransparency = 1
+	status.Text = "OFF"
+	status.TextColor3 = Color3.fromRGB(140, 60, 60)
+	status.TextSize = 12
+	status.Font = Enum.Font.GothamBold
+	status.Parent = btn
+
+	btn.MouseButton1Click:Connect(function()
+		callback(status)
+	end)
+
+	return btn, status
+end
+
+createButton("Infinite Jump", function(status)
+	toggleInfJump()
+	if infJumpEnabled then
+		status.Text = "ON"
+		status.TextColor3 = Color3.fromRGB(60, 200, 120)
+	else
+		status.Text = "OFF"
+		status.TextColor3 = Color3.fromRGB(140, 60, 60)
+	end
+end)
+
 icon.MouseButton1Click:Connect(function()
 	menu.Visible = not menu.Visible
 end)
