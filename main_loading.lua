@@ -16,6 +16,14 @@ local ok, err = pcall(function()
 		existing:Destroy()
 	end
 
+	local markerFolder = workspace:FindFirstChild("N1V1LON_Markers")
+	if markerFolder then
+		markerFolder:Destroy()
+	end
+	markerFolder = Instance.new("Folder")
+	markerFolder.Name = "N1V1LON_Markers"
+	markerFolder.Parent = workspace
+
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "N1V1LON"
 	gui.ResetOnSpawn = false
@@ -297,39 +305,70 @@ local ok, err = pcall(function()
 	end)
 
 	local checkpoints = {}
-	local cpCount = 0
+	local cpColors = {
+		Color3.fromRGB(255, 80, 80),
+		Color3.fromRGB(80, 255, 80),
+		Color3.fromRGB(80, 130, 255),
+		Color3.fromRGB(255, 200, 50),
+		Color3.fromRGB(200, 80, 255),
+		Color3.fromRGB(80, 255, 230),
+		Color3.fromRGB(255, 130, 50),
+		Color3.fromRGB(255, 80, 200),
+	}
+	local cpColorIdx = 0
 
 	local cpFrame = Instance.new("Frame")
-	cpFrame.Size = UDim2.new(1, 0, 0, 64)
+	cpFrame.Size = UDim2.new(1, 0, 0, 240)
 	cpFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	cpFrame.BorderSizePixel = 0
 	cpFrame.Parent = container
 	Instance.new("UICorner", cpFrame).CornerRadius = UDim.new(0, 6)
 
+	local cpHeader = Instance.new("Frame")
+	cpHeader.Size = UDim2.new(1, 0, 0, 24)
+	cpHeader.BackgroundTransparency = 1
+	cpHeader.Parent = cpFrame
+
 	local cpLabel = Instance.new("TextLabel")
-	cpLabel.Size = UDim2.new(1, 0, 0, 20)
-	cpLabel.Position = UDim2.new(0, 8, 0, 4)
+	cpLabel.Size = UDim2.new(0, 140, 1, 0)
+	cpLabel.Position = UDim2.new(0, 8, 0, 0)
 	cpLabel.BackgroundTransparency = 1
 	cpLabel.Text = "  Checkpoints"
 	cpLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
 	cpLabel.TextSize = 13
 	cpLabel.TextXAlignment = Enum.TextXAlignment.Left
 	cpLabel.Font = Enum.Font.Gotham
-	cpLabel.Parent = cpFrame
+	cpLabel.Parent = cpHeader
+
+	local cpAddBtn = Instance.new("TextButton")
+	cpAddBtn.Size = UDim2.new(0, 24, 0, 24)
+	cpAddBtn.Position = UDim2.new(1, -32, 0, 0)
+	cpAddBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+	cpAddBtn.BorderSizePixel = 0
+	cpAddBtn.Text = "+"
+	cpAddBtn.TextColor3 = Color3.fromRGB(160, 200, 160)
+	cpAddBtn.TextSize = 16
+	cpAddBtn.Font = Enum.Font.GothamBold
+	cpAddBtn.Parent = cpHeader
+	Instance.new("UICorner", cpAddBtn).CornerRadius = UDim.new(0, 4)
 
 	local cpList = Instance.new("ScrollingFrame")
-	cpList.Size = UDim2.new(1, -16, 0, 32)
-	cpList.Position = UDim2.new(0, 8, 0, 28)
+	cpList.Size = UDim2.new(1, -8, 1, -32)
+	cpList.Position = UDim2.new(0, 4, 0, 28)
 	cpList.BackgroundTransparency = 1
 	cpList.BorderSizePixel = 0
-	cpList.ScrollBarThickness = 0
+	cpList.ScrollBarThickness = 4
 	cpList.CanvasSize = UDim2.new(0, 0, 0, 0)
-	cpList.AutomaticCanvasSize = Enum.AutomaticSize.X
 	cpList.Parent = cpFrame
 	local cpLayout = Instance.new("UIListLayout")
-	cpLayout.FillDirection = Enum.FillDirection.Horizontal
-	cpLayout.Padding = UDim.new(0, 4)
+	cpLayout.FillDirection = Enum.FillDirection.Vertical
+	cpLayout.Padding = UDim.new(0, 3)
 	cpLayout.Parent = cpList
+
+	local function makeColor()
+		cpColorIdx = cpColorIdx + 1
+		return cpColors[((cpColorIdx - 1) % #cpColors) + 1]
+	end
 
 	local function addCP()
 		local char = player.Character
@@ -337,44 +376,113 @@ local ok, err = pcall(function()
 		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 		if not root then return end
 
-		cpCount = cpCount + 1
 		local pos = root.Position
-		checkpoints[cpCount] = pos
+		local color = makeColor()
+		local id = #checkpoints + 1
 
-		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(0, 28, 0, 28)
-		btn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-		btn.BorderSizePixel = 0
-		btn.Text = tostring(cpCount)
-		btn.TextColor3 = Color3.fromRGB(200, 200, 220)
-		btn.TextSize = 12
-		btn.Font = Enum.Font.GothamBold
-		btn.Parent = cpList
-		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+		local marker = Instance.new("Part")
+		marker.Size = Vector3.new(2, 2, 2)
+		marker.Shape = Enum.PartType.Ball
+		marker.Material = Enum.Material.Neon
+		marker.Color = color
+		marker.Position = pos
+		marker.Anchored = true
+		marker.CanCollide = false
+		marker.Parent = markerFolder
 
-		btn.MouseButton1Click:Connect(function()
+		local bbg = Instance.new("BillboardGui")
+		bbg.Size = UDim2.new(0, 80, 0, 24)
+		bbg.StudsOffset = Vector3.new(0, 2.5, 0)
+		bbg.AlwaysOnTop = true
+		bbg.Parent = marker
+		local bl = Instance.new("TextLabel")
+		bl.Size = UDim2.new(1, 0, 1, 0)
+		bl.BackgroundTransparency = 1
+		bl.Text = "CP " .. tostring(id)
+		bl.TextColor3 = color
+		bl.TextSize = 14
+		bl.Font = Enum.Font.GothamBold
+		bl.Parent = bbg
+
+		local entry = { pos = pos, color = color, id = id, marker = marker }
+
+		local row = Instance.new("Frame")
+		row.Size = UDim2.new(1, -6, 0, 28)
+		row.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+		row.BorderSizePixel = 0
+		row.Parent = cpList
+		Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
+
+		local dot = Instance.new("Frame")
+		dot.Size = UDim2.new(0, 10, 0, 10)
+		dot.Position = UDim2.new(0, 6, 0.5, -5)
+		dot.BackgroundColor3 = color
+		dot.BorderSizePixel = 0
+		dot.Parent = row
+		Instance.new("UICorner", dot).CornerRadius = UDim.new(0, 5)
+
+		local nameLbl = Instance.new("TextLabel")
+		nameLbl.Size = UDim2.new(0, 40, 1, 0)
+		nameLbl.Position = UDim2.new(0, 22, 0, 0)
+		nameLbl.BackgroundTransparency = 1
+		nameLbl.Text = "CP" .. tostring(id)
+		nameLbl.TextColor3 = Color3.fromRGB(200, 200, 220)
+		nameLbl.TextSize = 12
+		nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+		nameLbl.Font = Enum.Font.Gotham
+		nameLbl.Parent = row
+
+		local tpBtn = Instance.new("TextButton")
+		tpBtn.Size = UDim2.new(0, 36, 0, 22)
+		tpBtn.Position = UDim2.new(0, 68, 0.5, -11)
+		tpBtn.BackgroundColor3 = Color3.fromRGB(50, 70, 100)
+		tpBtn.BorderSizePixel = 0
+		tpBtn.Text = "TP"
+		tpBtn.TextColor3 = Color3.fromRGB(100, 180, 255)
+		tpBtn.TextSize = 11
+		tpBtn.Font = Enum.Font.GothamBold
+		tpBtn.Parent = row
+		Instance.new("UICorner", tpBtn).CornerRadius = UDim.new(0, 3)
+
+		local delBtn = Instance.new("TextButton")
+		delBtn.Size = UDim2.new(0, 22, 0, 22)
+		delBtn.Position = UDim2.new(1, -28, 0.5, -11)
+		delBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
+		delBtn.BorderSizePixel = 0
+		delBtn.Text = "X"
+		delBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+		delBtn.TextSize = 11
+		delBtn.Font = Enum.Font.GothamBold
+		delBtn.Parent = row
+		Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 3)
+
+		tpBtn.MouseButton1Click:Connect(function()
 			local c = player.Character
 			if c then
 				local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
 				if r then
-					r.Position = checkpoints[tonumber(btn.Text)]
+					r.Position = entry.pos
 				end
 			end
 		end)
+
+		delBtn.MouseButton1Click:Connect(function()
+			if entry.marker then
+				pcall(function() entry.marker:Destroy() end)
+			end
+			row:Destroy()
+			for i, e in ipairs(checkpoints) do
+				if e == entry then
+					table.remove(checkpoints, i)
+					break
+				end
+			end
+		end)
+
+		checkpoints[id] = entry
 	end
 
-	local cpBtn = Instance.new("TextButton")
-	cpBtn.Size = UDim2.new(0, 60, 0, 28)
-	cpBtn.Position = UDim2.new(1, -68, 0, 28)
-	cpBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-	cpBtn.BorderSizePixel = 0
-	cpBtn.Text = "Save"
-	cpBtn.TextColor3 = Color3.fromRGB(160, 200, 160)
-	cpBtn.TextSize = 12
-	cpBtn.Font = Enum.Font.GothamBold
-	cpBtn.Parent = cpFrame
-	Instance.new("UICorner", cpBtn).CornerRadius = UDim.new(0, 4)
-	cpBtn.MouseButton1Click:Connect(addCP)
+	cpAddBtn.MouseButton1Click:Connect(addCP)
 end)
 
 if not ok then
