@@ -86,6 +86,14 @@ return function(container, player, uis, rs)
 							local pos = root.Position
 							drawZone(pos.Y - (root.Size.Y / 2) - 0.5)
 							local count = 0
+
+							local playerChars = {}
+							for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+								if p ~= player and p.Character then
+									playerChars[p.Character] = true
+								end
+							end
+
 							for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
 								if p ~= player then
 									local c = p.Character
@@ -105,6 +113,24 @@ return function(container, player, uis, rs)
 									end
 								end
 							end
+
+							for _, part in ipairs(workspace:GetDescendants()) do
+								local h = part:FindFirstChildOfClass("Humanoid")
+								if h and h.Health > 0 then
+									local root = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
+									if root and not playerChars[part] then
+										local dist = (root.Position - pos).Magnitude
+										if dist < aaRange then
+											local ok = pcall(function() h:TakeDamage(5) end)
+											if not ok then
+												pcall(function() h.BreakJoints() end)
+											end
+											count = count + 1
+										end
+									end
+								end
+							end
+
 							tick = tick + 1
 							if tick % 20 == 0 then
 								warn("[N1V1LON DEBUG] AA tick: " .. count .. " targets hit, range " .. aaRange)

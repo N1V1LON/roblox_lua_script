@@ -345,6 +345,14 @@ local ok, err = pcall(function()
 				if not root then return end
 				local pos = root.Position
 				drawZone(pos.Y - (root.Size.Y / 2) - 0.5)
+
+				local playerChars = {}
+				for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+					if p ~= player and p.Character then
+						playerChars[p.Character] = true
+					end
+				end
+
 				for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
 					if p ~= player then
 						local c = p.Character
@@ -354,10 +362,21 @@ local ok, err = pcall(function()
 							if r and h and h.Health > 0 then
 								if (r.Position - pos).Magnitude < aaRange then
 									local ok = pcall(function() h:TakeDamage(5) end)
-									if not ok then
-										pcall(function() h:BreakJoints() end)
-									end
+									if not ok then pcall(function() h:BreakJoints() end) end
 								end
+							end
+						end
+					end
+				end
+
+				for _, part in ipairs(workspace:GetDescendants()) do
+					local h = part:FindFirstChildOfClass("Humanoid")
+					if h and h.Health > 0 then
+						local r = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
+						if r and not playerChars[part] then
+							if (r.Position - pos).Magnitude < aaRange then
+								local ok = pcall(function() h:TakeDamage(5) end)
+								if not ok then pcall(function() h:BreakJoints() end) end
 							end
 						end
 					end

@@ -235,10 +235,10 @@ local ok, err = pcall(function()
 		local savePath = ""
 
 		local attempts = {
-			"logsave/log_save.txt",
 			"N1V1LON_log_save.txt",
-			"../logsave/log_save.txt",
-			"/logsave/log_save.txt",
+			"log_save.txt",
+			"logsave/log_save.txt",
+			"../N1V1LON_log_save.txt",
 		}
 		for _, path in ipairs(attempts) do
 			if not saved then

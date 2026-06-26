@@ -36,6 +36,14 @@ return function(container, player, uis, rs)
 						local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 						if root then
 							local pos = root.Position
+
+							local playerChars = {}
+							for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+								if p ~= player and p.Character then
+									playerChars[p.Character] = true
+								end
+							end
+
 							for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
 								if p ~= player then
 									local c = p.Character
@@ -46,6 +54,18 @@ return function(container, player, uis, rs)
 											if (r.Position - pos).Magnitude < aaRange then
 												pcall(function() h:TakeDamage(5) end)
 											end
+										end
+									end
+								end
+							end
+
+							for _, part in ipairs(workspace:GetDescendants()) do
+								local h = part:FindFirstChildOfClass("Humanoid")
+								if h and h.Health > 0 then
+									local r = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
+									if r and not playerChars[part] then
+										if (r.Position - pos).Magnitude < aaRange then
+											pcall(function() h:TakeDamage(5) end)
 										end
 									end
 								end
