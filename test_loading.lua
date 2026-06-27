@@ -5,8 +5,7 @@ local widgets = {
 	"widget_speed.lua",
 	"widget_infjump.lua",
 	"widget_checkpoints.lua",
-	"widget_xray.lua",
-	"widget_items.lua",
+	"widget_highlights.lua",
 	"widget_aimbot.lua",
 }
 

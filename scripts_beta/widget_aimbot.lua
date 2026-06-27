@@ -1,7 +1,7 @@
 return function(container, player, uis, rs)
 	warn("[N1V1LON DEBUG] Aimbot widget loaded")
 	local aimOn = false
-	local zoneRadius = 50
+	local zoneRadius = 100
 	local hitCount = 5
 	local aimConn = nil
 
@@ -55,7 +55,7 @@ return function(container, player, uis, rs)
 	Instance.new("UICorner", zoneBar).CornerRadius = UDim.new(0, 3)
 
 	local zoneFill = Instance.new("Frame")
-	zoneFill.Size = UDim2.new(zoneRadius / 200, 0, 1, 0)
+	zoneFill.Size = UDim2.new(zoneRadius / 500, 0, 1, 0)
 	zoneFill.BackgroundColor3 = Color3.fromRGB(60, 200, 120)
 	zoneFill.BorderSizePixel = 0
 	zoneFill.Parent = zoneBar
@@ -67,7 +67,7 @@ return function(container, player, uis, rs)
 		local sizeX = zoneBar.AbsoluteSize.X
 		if sizeX > 0 then
 			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
-			zoneRadius = math.max(5, math.floor(frac * 200))
+			zoneRadius = math.max(5, math.floor(frac * 500))
 			zoneLabel.Text = "Zone radius: " .. zoneRadius
 			zoneFill.Size = UDim2.new(frac, 0, 1, 0)
 		end
@@ -146,8 +146,12 @@ return function(container, player, uis, rs)
 			if parent == char then continue end
 			if playerModels[parent] then continue end
 			local npcPos = getNPCPos(parent)
-			if npcPos and (npcPos - pos).Magnitude <= zoneRadius then
-				table.insert(targets, obj)
+			if npcPos then
+				local dist = (npcPos - pos).Magnitude
+				warn("[N1V1LON DEBUG] NPC " .. parent.Name .. " distance: " .. math.floor(dist) .. "/" .. zoneRadius)
+				if dist <= zoneRadius then
+					table.insert(targets, obj)
+				end
 			end
 		end
 		return targets
