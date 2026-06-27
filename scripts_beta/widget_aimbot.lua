@@ -126,16 +126,22 @@ return function(container, player, uis, rs)
 			if c then playerModels[c] = true end
 		end
 
+		local targets = {}
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			if not obj:IsA("Humanoid") then continue end
+			if obj.Health <= 0 then continue end
+			local parent = obj.Parent
+			if parent == char then continue end
+			if playerModels[parent] then continue end
+			local r = parent:FindFirstChild("HumanoidRootPart") or parent:FindFirstChild("Torso") or (parent:IsA("BasePart") and parent) or parent.PrimaryPart
+			if r and (r.Position - pos).Magnitude <= zoneRadius then
+				table.insert(targets, obj)
+			end
+		end
+
 		for h = 1, hitCount do
-			for _, obj in ipairs(workspace:GetDescendants()) do
-				if not obj:IsA("Humanoid") then continue end
-				local nhum = obj
-				if nhum.Health <= 0 then continue end
-				local parent = nhum.Parent
-				if parent == char then continue end
-				if playerModels[parent] then continue end
-				local r = parent:FindFirstChild("HumanoidRootPart") or parent:FindFirstChild("Torso") or (parent:IsA("BasePart") and parent) or parent.PrimaryPart
-				if r and (r.Position - pos).Magnitude <= zoneRadius then
+			for _, nhum in ipairs(targets) do
+				if nhum.Health > 0 then
 					pcall(function() nhum:TakeDamage(15) end)
 				end
 			end
