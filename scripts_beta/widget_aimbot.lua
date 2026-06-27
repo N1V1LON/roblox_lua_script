@@ -110,6 +110,7 @@ return function(container, player, uis, rs)
 				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 				if root then
 					spherePart.Position = root.Position
+					spherePart.Size = Vector3.new(zoneRadius * 2, zoneRadius * 2, zoneRadius * 2)
 				end
 			end
 		end)
