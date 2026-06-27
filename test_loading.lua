@@ -5,6 +5,7 @@ local widgets = {
 	"widget_speed.lua",
 	"widget_infjump.lua",
 	"widget_checkpoints.lua",
+	"widget_xray.lua",
 }
 
 local uis = game:GetService("UserInputService")
