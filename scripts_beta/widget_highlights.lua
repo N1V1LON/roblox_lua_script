@@ -139,13 +139,14 @@ return function(container, player, uis, rs)
 
 	local keywords = {
 		"ore", "iron", "gold", "diamond", "ruby", "emerald", "coal",
-		"crystal", "gem", "mineral", "chest", "coin", "token", "loot",
-		"box", "crate", "node", "vein", "amethyst", "sapphire",
-		"topaz", "platinum", "silver", "bronze", "copper",
+		"crystal", "gem", "mineral", "node", "vein", "amethyst",
+		"sapphire", "topaz", "platinum", "silver", "copper",
+		"mithril", "adamant", "runite",
 	}
 
 	local function isCollectible(name)
 		local lower = name:lower()
+		if lower == "rock" or lower == "stone" or lower == "dirt" then return false end
 		for _, kw in ipairs(keywords) do
 			if lower:find(kw, 1, true) then
 				return true
@@ -167,19 +168,19 @@ return function(container, player, uis, rs)
 		else
 			local count = 0
 			for _, obj in ipairs(workspace:GetDescendants()) do
-				if obj:IsA("BasePart") and isCollectible(obj.Name) then
-					if obj.Anchored and obj.Size.Magnitude > 10 then continue end
-					local hl = Instance.new("Highlight")
-					hl.Name = "N1V1LON_Item"
-					hl.FillColor = Color3.fromRGB(50, 150, 255)
-					hl.FillTransparency = 0.4
-					hl.OutlineColor = Color3.fromRGB(255, 255, 100)
-					hl.OutlineTransparency = 0.2
-					hl.Parent = obj
-					hl.Adornee = obj
-					table.insert(itemHighlights, hl)
-					count = count + 1
-				end
+				if not obj:IsA("BasePart") or obj:IsA("Terrain") then continue end
+				if obj.Size.X > 15 or obj.Size.Y > 15 or obj.Size.Z > 15 then continue end
+				if not isCollectible(obj.Name) then continue end
+				local hl = Instance.new("Highlight")
+				hl.Name = "N1V1LON_Item"
+				hl.FillColor = Color3.fromRGB(50, 150, 255)
+				hl.FillTransparency = 0.4
+				hl.OutlineColor = Color3.fromRGB(255, 255, 100)
+				hl.OutlineTransparency = 0.2
+				hl.Parent = obj
+				hl.Adornee = obj
+				table.insert(itemHighlights, hl)
+				count = count + 1
 			end
 			itemsOn = true
 			itemStatus.Text = "ON"

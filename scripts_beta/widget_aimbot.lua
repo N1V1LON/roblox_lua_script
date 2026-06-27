@@ -1,27 +1,30 @@
 return function(container, player, uis, rs)
 	warn("[N1V1LON DEBUG] Aimbot widget loaded")
 	local aimOn = false
-	local zoneRadius = 100
+	local zoneRadius = 50
 	local hitCount = 5
+	local damagePower = 15
 	local aimConn = nil
+	local spherePart = nil
+	local sphereConn = nil
 
-	local btn = Instance.new("Frame")
-	btn.Size = UDim2.new(1, 0, 0, 80)
-	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-	btn.BorderSizePixel = 0
-	btn.Parent = container
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 0, 106)
+	frame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	frame.BorderSizePixel = 0
+	frame.Parent = container
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
 
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(0, 120, 0, 20)
-	label.Position = UDim2.new(0, 8, 0, 4)
-	label.BackgroundTransparency = 1
-	label.Text = "  Aimbot"
-	label.TextColor3 = Color3.fromRGB(200, 200, 220)
-	label.TextSize = 13
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Font = Enum.Font.Gotham
-	label.Parent = btn
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(0, 120, 0, 20)
+	title.Position = UDim2.new(0, 8, 0, 4)
+	title.BackgroundTransparency = 1
+	title.Text = "  Aimbot"
+	title.TextColor3 = Color3.fromRGB(200, 200, 220)
+	title.TextSize = 13
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Font = Enum.Font.Gotham
+	title.Parent = frame
 
 	local status = Instance.new("TextButton")
 	status.Size = UDim2.new(0, 50, 0, 20)
@@ -31,87 +34,91 @@ return function(container, player, uis, rs)
 	status.TextColor3 = Color3.fromRGB(140, 60, 60)
 	status.TextSize = 12
 	status.Font = Enum.Font.GothamBold
-	status.Parent = btn
+	status.Parent = frame
 
-	local zoneLabel = Instance.new("TextLabel")
-	zoneLabel.Size = UDim2.new(0, 130, 0, 14)
-	zoneLabel.Position = UDim2.new(0, 8, 0, 26)
-	zoneLabel.BackgroundTransparency = 1
-	zoneLabel.Text = "Zone radius: " .. zoneRadius
-	zoneLabel.TextColor3 = Color3.fromRGB(160, 200, 160)
-	zoneLabel.TextSize = 11
-	zoneLabel.TextXAlignment = Enum.TextXAlignment.Left
-	zoneLabel.Font = Enum.Font.Gotham
-	zoneLabel.Parent = btn
+	local function makeSlider(yPos, label, getter, setter, maxVal, barColor, labelColor)
+		local lbl = Instance.new("TextLabel")
+		lbl.Size = UDim2.new(0, 130, 0, 14)
+		lbl.Position = UDim2.new(0, 8, 0, yPos)
+		lbl.BackgroundTransparency = 1
+		lbl.Text = label .. getter()
+		lbl.TextColor3 = labelColor
+		lbl.TextSize = 11
+		lbl.TextXAlignment = Enum.TextXAlignment.Left
+		lbl.Font = Enum.Font.Gotham
+		lbl.Parent = frame
 
-	local zoneBar = Instance.new("TextButton")
-	zoneBar.Size = UDim2.new(1, -20, 0, 8)
-	zoneBar.Position = UDim2.new(0, 10, 0, 42)
-	zoneBar.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-	zoneBar.BorderSizePixel = 0
-	zoneBar.Text = ""
-	zoneBar.AutoButtonColor = false
-	zoneBar.Parent = btn
-	Instance.new("UICorner", zoneBar).CornerRadius = UDim.new(0, 3)
+		local bar = Instance.new("TextButton")
+		bar.Size = UDim2.new(1, -20, 0, 8)
+		bar.Position = UDim2.new(0, 10, 0, yPos + 16)
+		bar.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+		bar.BorderSizePixel = 0
+		bar.Text = ""
+		bar.AutoButtonColor = false
+		bar.Parent = frame
+		Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
 
-	local zoneFill = Instance.new("Frame")
-	zoneFill.Size = UDim2.new(zoneRadius / 500, 0, 1, 0)
-	zoneFill.BackgroundColor3 = Color3.fromRGB(60, 200, 120)
-	zoneFill.BorderSizePixel = 0
-	zoneFill.Parent = zoneBar
-	Instance.new("UICorner", zoneFill).CornerRadius = UDim.new(0, 3)
+		local fill = Instance.new("Frame")
+		fill.Size = UDim2.new(getter() / maxVal, 0, 1, 0)
+		fill.BackgroundColor3 = barColor
+		fill.BorderSizePixel = 0
+		fill.Parent = bar
+		Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 3)
 
-	zoneBar.MouseButton1Click:Connect(function()
-		local mx = uis:GetMouseLocation().X
-		local posX = zoneBar.AbsolutePosition.X
-		local sizeX = zoneBar.AbsoluteSize.X
-		if sizeX > 0 then
-			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
-			zoneRadius = math.max(5, math.floor(frac * 500))
-			zoneLabel.Text = "Zone radius: " .. zoneRadius
-			zoneFill.Size = UDim2.new(frac, 0, 1, 0)
-		end
-	end)
+		bar.MouseButton1Click:Connect(function()
+			local mx = uis:GetMouseLocation().X
+			local px = bar.AbsolutePosition.X
+			local sx = bar.AbsoluteSize.X
+			if sx > 0 then
+				local frac = math.clamp((mx - px) / sx, 0, 1)
+				local val = math.max(1, math.floor(frac * maxVal))
+				if maxVal == 500 then val = math.max(5, val) end
+				setter(val)
+				lbl.Text = label .. getter()
+				fill.Size = UDim2.new(frac, 0, 1, 0)
+			end
+		end)
 
-	local hitLabel = Instance.new("TextLabel")
-	hitLabel.Size = UDim2.new(0, 130, 0, 14)
-	hitLabel.Position = UDim2.new(0, 8, 0, 54)
-	hitLabel.BackgroundTransparency = 1
-	hitLabel.Text = "Hit count: " .. hitCount
-	hitLabel.TextColor3 = Color3.fromRGB(200, 200, 100)
-	hitLabel.TextSize = 11
-	hitLabel.TextXAlignment = Enum.TextXAlignment.Left
-	hitLabel.Font = Enum.Font.Gotham
-	hitLabel.Parent = btn
+		return lbl, bar, fill
+	end
 
-	local hitBar = Instance.new("TextButton")
-	hitBar.Size = UDim2.new(1, -20, 0, 8)
-	hitBar.Position = UDim2.new(0, 10, 0, 70)
-	hitBar.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-	hitBar.BorderSizePixel = 0
-	hitBar.Text = ""
-	hitBar.AutoButtonColor = false
-	hitBar.Parent = btn
-	Instance.new("UICorner", hitBar).CornerRadius = UDim.new(0, 3)
+	makeSlider(24, "Zone: ", function() return zoneRadius end, function(v) zoneRadius = v end, 500, Color3.fromRGB(60, 200, 120), Color3.fromRGB(160, 200, 160))
+	makeSlider(50, "Hits: ", function() return hitCount end, function(v) hitCount = v end, 50, Color3.fromRGB(200, 200, 100), Color3.fromRGB(200, 200, 100))
+	makeSlider(76, "Damage: ", function() return damagePower end, function(v) damagePower = v end, 100, Color3.fromRGB(200, 100, 100), Color3.fromRGB(200, 120, 120))
 
-	local hitFill = Instance.new("Frame")
-	hitFill.Size = UDim2.new(hitCount / 50, 0, 1, 0)
-	hitFill.BackgroundColor3 = Color3.fromRGB(200, 200, 100)
-	hitFill.BorderSizePixel = 0
-	hitFill.Parent = hitBar
-	Instance.new("UICorner", hitFill).CornerRadius = UDim.new(0, 3)
+	local function createSphere()
+		if spherePart then pcall(function() spherePart:Destroy() end) end
+		spherePart = Instance.new("Part")
+		spherePart.Name = "N1V1LON_Sphere"
+		spherePart.Shape = Enum.PartType.Ball
+		spherePart.Size = Vector3.new(zoneRadius * 2, zoneRadius * 2, zoneRadius * 2)
+		spherePart.Anchored = true
+		spherePart.CanCollide = false
+		spherePart.Transparency = 0.85
+		spherePart.Color = Color3.fromRGB(100, 200, 255)
+		spherePart.Material = Enum.Material.Neon
+		spherePart.Parent = workspace
 
-	hitBar.MouseButton1Click:Connect(function()
-		local mx = uis:GetMouseLocation().X
-		local posX = hitBar.AbsolutePosition.X
-		local sizeX = hitBar.AbsoluteSize.X
-		if sizeX > 0 then
-			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
-			hitCount = math.max(1, math.floor(frac * 50))
-			hitLabel.Text = "Hit count: " .. hitCount
-			hitFill.Size = UDim2.new(frac, 0, 1, 0)
-		end
-	end)
+		if sphereConn then sphereConn:Disconnect() end
+		sphereConn = rs.RenderStepped:Connect(function()
+			if not aimOn or not spherePart then
+				if sphereConn then sphereConn:Disconnect(); sphereConn = nil end
+				return
+			end
+			local char = player.Character
+			if char then
+				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+				if root then
+					spherePart.Position = root.Position
+				end
+			end
+		end)
+	end
+
+	local function destroySphere()
+		if sphereConn then sphereConn:Disconnect(); sphereConn = nil end
+		if spherePart then pcall(function() spherePart:Destroy() end); spherePart = nil end
+	end
 
 	local function getNPCPos(parent)
 		local r = parent:FindFirstChild("HumanoidRootPart") or parent:FindFirstChild("Torso")
@@ -126,11 +133,11 @@ return function(container, player, uis, rs)
 		return nil
 	end
 
-	local function getNPCTargets()
+	local function doAimbot()
 		local char = player.Character
-		if not char then return {} end
+		if not char then return end
 		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-		if not root then return {} end
+		if not root then return end
 		local pos = root.Position
 
 		local playerModels = {}
@@ -146,32 +153,19 @@ return function(container, player, uis, rs)
 			if parent == char then continue end
 			if playerModels[parent] then continue end
 			local npcPos = getNPCPos(parent)
-			if npcPos then
-				local dist = (npcPos - pos).Magnitude
-				warn("[N1V1LON DEBUG] NPC " .. parent.Name .. " distance: " .. math.floor(dist) .. "/" .. zoneRadius)
-				if dist <= zoneRadius then
-					table.insert(targets, obj)
-				end
+			if npcPos and (npcPos - pos).Magnitude <= zoneRadius then
+				table.insert(targets, obj)
 			end
 		end
-		return targets
-	end
 
-	local function damageNPC(nhum)
-		nhum.Health = nhum.Health - 15
-		if nhum.Health <= 0 then
-			pcall(function() nhum:BreakJoints() end)
-		end
-	end
-
-	local function doAimbot()
-		local targets = getNPCTargets()
-		warn("[N1V1LON DEBUG] Aimbot: целей найдено " .. #targets)
-		if #targets == 0 then return end
+		warn("[N1V1LON DEBUG] Aimbot: " .. #targets .. " NPC, damage " .. damagePower .. " x " .. hitCount)
 		for h = 1, hitCount do
 			for _, nhum in ipairs(targets) do
 				if nhum.Health > 0 then
-					damageNPC(nhum)
+					nhum.Health = nhum.Health - damagePower
+					if nhum.Health <= 0 then
+						pcall(function() nhum:BreakJoints() end)
+					end
 				end
 			end
 		end
@@ -183,6 +177,7 @@ return function(container, player, uis, rs)
 		if aimOn then
 			status.Text = "ON"
 			status.TextColor3 = Color3.fromRGB(60, 200, 120)
+			createSphere()
 			if aimConn then aimConn:Disconnect() end
 			aimConn = uis.InputBegan:Connect(function(input, processed)
 				if processed then return end
@@ -194,6 +189,7 @@ return function(container, player, uis, rs)
 		else
 			status.Text = "OFF"
 			status.TextColor3 = Color3.fromRGB(140, 60, 60)
+			destroySphere()
 			if aimConn then aimConn:Disconnect(); aimConn = nil end
 		end
 	end)
