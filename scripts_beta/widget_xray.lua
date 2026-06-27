@@ -1,7 +1,6 @@
 return function(container, player, uis, rs)
 	warn("[N1V1LON DEBUG] Xray widget loaded")
 	local xrayOn = false
-	local restoredParts = {}
 	local npcHighlights = {}
 
 	local btn = Instance.new("TextButton")
@@ -32,14 +31,6 @@ return function(container, player, uis, rs)
 			if p.Character then playerModels[p.Character] = true end
 		end
 
-		for _, part in ipairs(workspace:GetDescendants()) do
-			if part:IsA("BasePart") and not part:IsA("Terrain") then
-				if part.Parent and playerModels[part.Parent] then continue end
-				part.LocalTransparencyModifier = 0.7
-				table.insert(restoredParts, part)
-			end
-		end
-
 		for _, obj in ipairs(workspace:GetDescendants()) do
 			if obj:IsA("Humanoid") and obj.Health > 0 then
 				local parent = obj.Parent
@@ -56,14 +47,10 @@ return function(container, player, uis, rs)
 				table.insert(npcHighlights, hl)
 			end
 		end
-		warn("[N1V1LON DEBUG] Xray ON — стен: " .. #restoredParts .. ", NPC: " .. #npcHighlights)
+		warn("[N1V1LON DEBUG] Xray ON — NPC: " .. #npcHighlights)
 	end
 
 	local function disableXray()
-		for _, part in ipairs(restoredParts) do
-			part.LocalTransparencyModifier = 0
-		end
-		restoredParts = {}
 		for _, hl in ipairs(npcHighlights) do
 			pcall(function() hl:Destroy() end)
 		end
