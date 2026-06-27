@@ -98,6 +98,7 @@ return function(container, player, uis, rs)
 	info.Parent = frame
 
 	local function toggleNPC()
+		warn("[N1V1LON DEBUG] Highlights NPC toggled: " .. tostring(not npcOn))
 		if npcOn then
 			for _, hl in ipairs(npcHighlights) do
 				pcall(function() hl:Destroy() end)
@@ -134,6 +135,7 @@ return function(container, player, uis, rs)
 			npcStatus.Text = "ON"
 			npcStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
 			info.Text = "NPC: " .. count
+			warn("[N1V1LON DEBUG] Highlights NPC найдено: " .. count)
 		end
 	end
 
@@ -156,6 +158,7 @@ return function(container, player, uis, rs)
 	end
 
 	local function toggleItems()
+		warn("[N1V1LON DEBUG] Highlights Items toggled: " .. tostring(not itemsOn))
 		if itemsOn then
 			for _, hl in ipairs(itemHighlights) do
 				pcall(function() hl:Destroy() end)
@@ -186,6 +189,7 @@ return function(container, player, uis, rs)
 			itemStatus.Text = "ON"
 			itemStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
 			info.Text = "Items: " .. count
+			warn("[N1V1LON DEBUG] Highlights Items найдено: " .. count)
 		end
 	end
 
