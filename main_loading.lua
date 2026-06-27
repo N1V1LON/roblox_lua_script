@@ -1,6 +1,7 @@
 local uis = game:GetService("UserInputService")
 local rs = game:GetService("RunService")
 
+-- Cleanup old event connections on re-run
 _G.N1V1LON = _G.N1V1LON or {}
 if _G.N1V1LON.cleanup then
 	for _, fn in ipairs(_G.N1V1LON.cleanup) do
@@ -8,85 +9,37 @@ if _G.N1V1LON.cleanup then
 	end
 end
 _G.N1V1LON.cleanup = {}
-_G.N1V1LON.logs = _G.N1V1LON.logs or {}
-
-local function addLog(msg)
-	local t = os.time()
-	local info = ""
-	local ok, result = pcall(function()
-		local s = game:GetService("HttpService")
-		info = s:FormatUtc(s:GetCurrentDateTime(), "!time")
-	end)
-	if not ok then info = tostring(t) end
-	table.insert(_G.N1V1LON.logs, "[" .. info .. "] " .. msg)
-end
 
 local ok, err = pcall(function()
 	local player = game:GetService("Players").LocalPlayer
-	if not player then return end
-
-	local function chatLocal(msg, color)
-		local char = player.Character
-		if not char then return end
-		local head = char:FindFirstChild("Head")
-		if not head then return end
-		local chat = game:GetService("Chat")
-		pcall(function()
-			chat:Chat(head, msg, color or Color3.fromRGB(200, 200, 255))
-		end)
+	if not player then
+		warn("N1V1LON: No player")
+		return
 	end
 
 	local pg = player:WaitForChild("PlayerGui", 10)
-	if not pg then return end
+	if not pg then
+		warn("N1V1LON: No PlayerGui")
+		return
+	end
 
 	local existing = pg:FindFirstChild("N1V1LON")
-	if existing then existing:Destroy() end
-
-	local blockUrl = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/users/players.lua"
-	local okB, blockRaw = pcall(function()
-		return game:HttpGet(blockUrl, true)
-	end)
-	if okB and blockRaw then
-		local okFn, playersTbl = pcall(loadstring, blockRaw)
-		if okFn and type(playersTbl) == "table" then
-			local pData = playersTbl[player.UserId]
-			if pData and pData.blocked == true then
-				warn("N1V1LON: blocked " .. player.Name .. " (" .. player.UserId .. ")")
-				chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
-				return
-			end
-		end
+	if existing then
+		existing:Destroy()
 	end
+
+	local markerFolder = workspace:FindFirstChild("N1V1LON_Markers")
+	if markerFolder then
+		markerFolder:Destroy()
+	end
+	markerFolder = Instance.new("Folder")
+	markerFolder.Name = "N1V1LON_Markers"
+	markerFolder.Parent = workspace
 
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "N1V1LON"
 	gui.ResetOnSpawn = false
 	gui.Parent = pg
-
-	-- periodic block check
-	task.spawn(function()
-		while gui and gui.Parent do
-			task.wait(5)
-			local okB2, raw2 = pcall(function()
-				return game:HttpGet(blockUrl, true)
-			end)
-			if okB2 and raw2 then
-				local okFn2, tbl2 = pcall(loadstring, raw2)
-				if okFn2 and type(tbl2) == "table" then
-					local pData2 = tbl2[player.UserId]
-					if pData2 and pData2.blocked == true then
-						warn("N1V1LON: blocked " .. player.Name .. " (" .. player.UserId .. ")")
-						chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
-						if gui then
-							pcall(function() gui:Destroy() end)
-						end
-						_G.N1V1LON.blocked = true
-						return
-					end
-				end
-			end
-		end
-	end)
 
 	local icon = Instance.new("TextButton")
 	icon.Name = "Icon"
@@ -104,8 +57,8 @@ local ok, err = pcall(function()
 
 	local menu = Instance.new("Frame")
 	menu.Name = "Menu"
-	menu.Size = UDim2.new(0, 300, 0, 300)
-	menu.Position = UDim2.new(0.5, -150, 0.5, -150)
+	menu.Size = UDim2.new(0, 300, 0, 250)
+	menu.Position = UDim2.new(0.5, -150, 0.5, -125)
 	menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 	menu.BorderSizePixel = 0
 	menu.Visible = false
@@ -123,7 +76,7 @@ local ok, err = pcall(function()
 	version.Size = UDim2.new(0, 100, 1, 0)
 	version.Position = UDim2.new(0, 8, 0, 0)
 	version.BackgroundTransparency = 1
-	version.Text = "v26.2.1.0 Realse"
+	version.Text = "v26.1.3.5 Realse"
 	version.TextColor3 = Color3.fromRGB(120, 120, 160)
 	version.TextSize = 10
 	version.TextXAlignment = Enum.TextXAlignment.Left
@@ -131,25 +84,15 @@ local ok, err = pcall(function()
 	version.Parent = titleBar
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(0, 100, 1, 0)
-	title.Position = UDim2.new(0, 90, 0, 0)
+	title.Size = UDim2.new(0, 140, 1, 0)
+	title.Position = UDim2.new(0, 110, 0, 0)
 	title.BackgroundTransparency = 1
-	title.Text = "N1V1LON"
+	title.Text = "N1V1LON v26.1.3.5 Realse"
 	title.TextColor3 = Color3.fromRGB(220, 220, 255)
 	title.TextSize = 11
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Font = Enum.Font.GothamBold
 	title.Parent = titleBar
-
-	local logBtn = Instance.new("TextButton")
-	logBtn.Size = UDim2.new(0, 28, 1, 0)
-	logBtn.Position = UDim2.new(1, -96, 0, 0)
-	logBtn.BackgroundTransparency = 1
-	logBtn.Text = "^"
-	logBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
-	logBtn.TextSize = 18
-	logBtn.Font = Enum.Font.GothamBold
-	logBtn.Parent = titleBar
 
 	local toggleBtn = Instance.new("TextButton")
 	toggleBtn.Size = UDim2.new(0, 28, 1, 0)
@@ -193,10 +136,83 @@ local ok, err = pcall(function()
 
 	icon.MouseButton1Click:Connect(function()
 		menu.Visible = not menu.Visible
-		if menu.Visible then toggleBtn.Text = "<" end
+		if menu.Visible then
+			toggleBtn.Text = "<"
+		end
 	end)
 
-	-- Speed
+	local function createButton(text, callback)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 32)
+		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+		btn.BorderSizePixel = 0
+		btn.Text = "  " .. text
+		btn.TextColor3 = Color3.fromRGB(200, 200, 220)
+		btn.TextSize = 13
+		btn.TextXAlignment = Enum.TextXAlignment.Left
+		btn.Font = Enum.Font.Gotham
+		btn.Parent = container
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
+		local status = Instance.new("TextLabel")
+		status.Size = UDim2.new(0, 50, 1, 0)
+		status.Position = UDim2.new(1, -55, 0, 0)
+		status.BackgroundTransparency = 1
+		status.Text = "OFF"
+		status.TextColor3 = Color3.fromRGB(140, 60, 60)
+		status.TextSize = 12
+		status.Font = Enum.Font.GothamBold
+		status.Parent = btn
+
+		btn.MouseButton1Click:Connect(function()
+			callback(status)
+		end)
+	end
+
+	local infJumpOn = false
+	local infJumpConn = nil
+	local jumpReqConn = nil
+
+	createButton("Infinite Jump", function(status)
+		infJumpOn = not infJumpOn
+		if infJumpOn then
+			local function apply(char)
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if hum then
+					hum.UseJumpPower = false
+				end
+			end
+			local char = player.Character
+			if char then apply(char) end
+			infJumpConn = player.CharacterAdded:Connect(apply)
+			jumpReqConn = uis.JumpRequest:Connect(function()
+				if infJumpOn then
+					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+					if hum then
+						hum:ChangeState(Enum.HumanoidStateType.Jumping)
+					end
+				end
+			end)
+			table.insert(_G.N1V1LON.cleanup, function()
+				if jumpReqConn then jumpReqConn:Disconnect() end
+				if infJumpConn then infJumpConn:Disconnect() end
+			end)
+			status.Text = "ON"
+			status.TextColor3 = Color3.fromRGB(60, 200, 120)
+		else
+			if infJumpConn then
+				infJumpConn:Disconnect()
+				infJumpConn = nil
+			end
+			if jumpReqConn then
+				jumpReqConn:Disconnect()
+				jumpReqConn = nil
+			end
+			status.Text = "OFF"
+			status.TextColor3 = Color3.fromRGB(140, 60, 60)
+		end
+	end)
+
 	local speedOn = false
 	local speedVal = 32
 	local speedHeartbeat = nil
@@ -271,7 +287,9 @@ local ok, err = pcall(function()
 	local function applySpeed()
 		if not speedOn then return end
 		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if hum then hum.WalkSpeed = speedVal end
+		if hum then
+			hum.WalkSpeed = speedVal
+		end
 	end
 
 	spdStatus.MouseButton1Click:Connect(function()
@@ -295,190 +313,6 @@ local ok, err = pcall(function()
 		end
 	end)
 
-	-- Infinite Jump
-	local infJumpOn = false
-	local infJumpConn = nil
-	local jumpReqConn = nil
-
-	local infBtn = Instance.new("TextButton")
-	infBtn.Size = UDim2.new(1, 0, 0, 32)
-	infBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-	infBtn.BorderSizePixel = 0
-	infBtn.Text = "  Infinite Jump"
-	infBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	infBtn.TextSize = 13
-	infBtn.TextXAlignment = Enum.TextXAlignment.Left
-	infBtn.Font = Enum.Font.Gotham
-	infBtn.Parent = container
-	Instance.new("UICorner", infBtn).CornerRadius = UDim.new(0, 6)
-
-	local infStatus = Instance.new("TextLabel")
-	infStatus.Size = UDim2.new(0, 50, 1, 0)
-	infStatus.Position = UDim2.new(1, -55, 0, 0)
-	infStatus.BackgroundTransparency = 1
-	infStatus.Text = "OFF"
-	infStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-	infStatus.TextSize = 12
-	infStatus.Font = Enum.Font.GothamBold
-	infStatus.Parent = infBtn
-
-	infBtn.MouseButton1Click:Connect(function()
-		infJumpOn = not infJumpOn
-		if infJumpOn then
-			local function apply(char)
-				local hum = char:FindFirstChildOfClass("Humanoid")
-				if hum then hum.UseJumpPower = false end
-			end
-			local char = player.Character
-			if char then apply(char) end
-			infJumpConn = player.CharacterAdded:Connect(apply)
-			jumpReqConn = uis.JumpRequest:Connect(function()
-				if infJumpOn then
-					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-					if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-				end
-			end)
-			table.insert(_G.N1V1LON.cleanup, function()
-				if jumpReqConn then jumpReqConn:Disconnect() end
-				if infJumpConn then infJumpConn:Disconnect() end
-			end)
-			infStatus.Text = "ON"
-			infStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-		else
-			if infJumpConn then infJumpConn:Disconnect(); infJumpConn = nil end
-			if jumpReqConn then jumpReqConn:Disconnect(); jumpReqConn = nil end
-			infStatus.Text = "OFF"
-			infStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-		end
-	end)
-
-	-- Aimbot (on attack: speed boost + rapid AoE hits)
-	local aimOn = false
-	local aimRange = 30
-	local aimHits = 3
-	local aimConnML = nil
-	local aimOrigSpeed = nil
-
-	local aimBtn = Instance.new("TextButton")
-	aimBtn.Size = UDim2.new(1, 0, 0, 32)
-	aimBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-	aimBtn.BorderSizePixel = 0
-	aimBtn.Text = "  Aimbot"
-	aimBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	aimBtn.TextSize = 13
-	aimBtn.TextXAlignment = Enum.TextXAlignment.Left
-	aimBtn.Font = Enum.Font.Gotham
-	aimBtn.Parent = container
-	Instance.new("UICorner", aimBtn).CornerRadius = UDim.new(0, 6)
-
-	local aimStatus = Instance.new("TextLabel")
-	aimStatus.Size = UDim2.new(0, 50, 1, 0)
-	aimStatus.Position = UDim2.new(1, -55, 0, 0)
-	aimStatus.BackgroundTransparency = 1
-	aimStatus.Text = "OFF"
-	aimStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-	aimStatus.TextSize = 12
-	aimStatus.Font = Enum.Font.GothamBold
-	aimStatus.Parent = aimBtn
-
-	local aimRangeLbl = Instance.new("TextButton")
-	aimRangeLbl.Size = UDim2.new(0, 50, 1, 0)
-	aimRangeLbl.Position = UDim2.new(1, -112, 0, 0)
-	aimRangeLbl.BackgroundTransparency = 1
-	aimRangeLbl.Text = tostring(aimRange)
-	aimRangeLbl.TextColor3 = Color3.fromRGB(160, 200, 160)
-	aimRangeLbl.TextSize = 12
-	aimRangeLbl.Font = Enum.Font.GothamBold
-	aimRangeLbl.Parent = aimBtn
-	aimRangeLbl.MouseButton1Click:Connect(function()
-		aimRange = aimRange + 10
-		if aimRange > 500 then aimRange = 30 end
-		aimRangeLbl.Text = tostring(aimRange)
-	end)
-
-	local aimHitsLbl = Instance.new("TextButton")
-	aimHitsLbl.Size = UDim2.new(0, 32, 1, 0)
-	aimHitsLbl.Position = UDim2.new(1, -151, 0, 0)
-	aimHitsLbl.BackgroundTransparency = 1
-	aimHitsLbl.Text = tostring(aimHits)
-	aimHitsLbl.TextColor3 = Color3.fromRGB(200, 200, 100)
-	aimHitsLbl.TextSize = 12
-	aimHitsLbl.Font = Enum.Font.GothamBold
-	aimHitsLbl.Parent = aimBtn
-	aimHitsLbl.MouseButton1Click:Connect(function()
-		aimHits = aimHits + 1
-		if aimHits > 100 then aimHits = 1 end
-		aimHitsLbl.Text = tostring(aimHits)
-	end)
-
-	local function doAimbot()
-		local char = player.Character
-		if not char then return end
-		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-		if not root then return end
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		if not hum then return end
-		local pos = root.Position
-
-		local playerChars = {}
-		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-			if p ~= player and p.Character then playerChars[p.Character] = true end
-		end
-
-		-- speed boost
-		local oldWS = hum.WalkSpeed
-		hum.WalkSpeed = oldWS * 2.5
-
-		-- rapid AoE hits
-		for hit = 1, aimHits do
-			for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-				if p == player then continue end
-				local c = p.Character
-				if c then
-					local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-					local h = c:FindFirstChildOfClass("Humanoid")
-					if r and h and h.Health > 0 and (r.Position - pos).Magnitude < aimRange then
-						pcall(function() h:TakeDamage(15) end)
-					end
-				end
-			end
-			for _, part in ipairs(workspace:GetDescendants()) do
-				if part == char then continue end
-				local h = part:FindFirstChildOfClass("Humanoid")
-				if h and h.Health > 0 then
-					local r = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
-					if r and not playerChars[part] and (r.Position - pos).Magnitude < aimRange then
-						pcall(function() h:TakeDamage(15) end)
-					end
-				end
-			end
-			task.wait(0.08)
-		end
-
-		-- restore speed
-		hum.WalkSpeed = oldWS
-	end
-
-	aimBtn.MouseButton1Click:Connect(function()
-		aimOn = not aimOn
-		if aimOn then
-			aimStatus.Text = "ON"
-			aimStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			if aimConnML then aimConnML:Disconnect() end
-			aimConnML = uis.InputBegan:Connect(function(input, processed)
-				if processed then return end
-				if aimOn and input.UserInputType == Enum.UserInputType.MouseButton1 then
-					doAimbot()
-				end
-			end)
-		else
-			aimStatus.Text = "OFF"
-			aimStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-			if aimConnML then aimConnML:Disconnect(); aimConnML = nil end
-		end
-	end)
-
-	-- Checkpoints
 	local checkpoints = {}
 
 	local cpFrame = Instance.new("Frame")
@@ -534,6 +368,7 @@ local ok, err = pcall(function()
 		if not char then return end
 		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 		if not root then return end
+
 		local pos = root.Position
 		local id = #checkpoints + 1
 
@@ -563,128 +398,33 @@ local ok, err = pcall(function()
 				task.delay(0.6, function()
 					row:Destroy()
 					for i, e in ipairs(checkpoints) do
-						if e == entry then table.remove(checkpoints, i); break end
+						if e == entry then
+							table.remove(checkpoints, i)
+							break
+						end
 					end
 				end)
 			end)
 		end)
 
 		row.MouseButton1Up:Connect(function()
-			if holdTask then task.cancel(holdTask); holdTask = nil end
+			if holdTask then
+				task.cancel(holdTask)
+				holdTask = nil
+			end
 			if not held then
 				local c = player.Character
 				if c then
 					local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-					if r then r.Position = entry.pos end
+					if r then
+						r.Position = entry.pos
+					end
 				end
 			end
 		end)
 	end
 
 	cpAddBtn.MouseButton1Click:Connect(addCP)
-
-	logBtn.MouseButton1Click:Connect(function()
-		local dataLines = {}
-		table.insert(dataLines, "=== N1V1LON Debug Log ===")
-		table.insert(dataLines, "Version: v26.2.1.0 Realse")
-		table.insert(dataLines, "Build: release (single-file)")
-		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Game Info ---")
-		local okG, gName = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name end)
-		table.insert(dataLines, "Game: " .. (okG and gName or "unknown"))
-		table.insert(dataLines, "PlaceId: " .. game.PlaceId)
-		table.insert(dataLines, "JobId: " .. game.JobId)
-		table.insert(dataLines, "CreatorId: " .. game.CreatorId)
-		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Player ---")
-		table.insert(dataLines, "Name: " .. player.Name)
-		table.insert(dataLines, "UserId: " .. player.UserId)
-		table.insert(dataLines, "AccountAge: " .. player.AccountAge)
-		local char = player.Character
-		if char then
-			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-			if root then table.insert(dataLines, "Position: " .. tostring(root.Position)) end
-			local hum = char:FindFirstChildOfClass("Humanoid")
-			if hum then table.insert(dataLines, "Health: " .. hum.Health .. "/" .. hum.MaxHealth .. " WS:" .. hum.WalkSpeed) end
-		end
-		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Inventory ---")
-		local backpack = player:FindFirstChild("Backpack")
-		if backpack then
-			for _, item in ipairs(backpack:GetChildren()) do
-				table.insert(dataLines, "  [Backpack] " .. item.Name .. " (" .. item.ClassName .. ")")
-			end
-		end
-		if char then
-			for _, item in ipairs(char:GetChildren()) do
-				if item:IsA("Tool") or item:IsA("Accoutrement") or item:IsA("Accessory") then
-					table.insert(dataLines, "  [Char] " .. item.Name .. " (" .. item.ClassName .. ")")
-				end
-			end
-		end
-		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Nearby Parts (30 studs) ---")
-		if char then
-			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-			if root then
-				local pos = root.Position
-				local count = 0
-				for _, part in ipairs(workspace:GetDescendants()) do
-					if part:IsA("BasePart") and not part:IsA("Terrain") then
-						if (part.Position - pos).Magnitude < 30 then
-							count = count + 1
-							if count <= 50 then
-								table.insert(dataLines, "  " .. part.Name .. " (" .. part.ClassName .. ")")
-							end
-						end
-					end
-				end
-				table.insert(dataLines, "  Total nearby: " .. count)
-			end
-		end
-		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Runtime Logs ---")
-		if _G.N1V1LON.logs then
-			for _, line in ipairs(_G.N1V1LON.logs) do
-				table.insert(dataLines, line)
-			end
-		end
-		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Players ---")
-		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-			local info = p.Name
-			local c = p.Character
-			if c then
-				local h = c:FindFirstChildOfClass("Humanoid")
-				if h then info = info .. " HP:" .. math.floor(h.Health) end
-			end
-			table.insert(dataLines, "  " .. info)
-		end
-		table.insert(dataLines, "")
-		table.insert(dataLines, "=== End ===")
-
-		local fullText = table.concat(dataLines, "\n")
-
-		local saved = false
-		local savePath = ""
-		-- try creating logsave folder
-		pcall(function() makefolder("logsave") end)
-		for _, path in ipairs({ "logsave/N1V1LON_log.txt", "N1V1LON_log_save.txt", "log_save.txt", "logsave/log_save.txt" }) do
-			if not saved then
-				local okW = pcall(function() writefile(path, fullText); saved = true; savePath = path end)
-			end
-		end
-		if saved then
-			warn("N1V1LON: log saved to " .. savePath)
-			chatLocal("N1V1LON: log saved (" .. #dataLines .. " lines)", Color3.fromRGB(100, 255, 100))
-		else
-			warn("N1V1LON: writefile not available, log below")
-			chatLocal("N1V1LON: writefile not available, check console", Color3.fromRGB(255, 100, 100))
-		end
-		warn("=== N1V1LON LOG ===")
-		warn(fullText)
-		warn("=== END LOG ===")
-	end)
 end)
 
 if not ok then
