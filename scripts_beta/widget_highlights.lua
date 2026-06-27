@@ -170,6 +170,7 @@ return function(container, player, uis, rs)
 			info.Text = ""
 		else
 			local count = 0
+			local samples = {}
 			for _, obj in ipairs(workspace:GetDescendants()) do
 				if not obj:IsA("BasePart") or obj:IsA("Terrain") then continue end
 				if obj.Size.X > 15 or obj.Size.Y > 15 or obj.Size.Z > 15 then continue end
@@ -184,12 +185,13 @@ return function(container, player, uis, rs)
 				hl.Adornee = obj
 				table.insert(itemHighlights, hl)
 				count = count + 1
+				if #samples < 5 then table.insert(samples, obj.Name) end
 			end
 			itemsOn = true
 			itemStatus.Text = "ON"
 			itemStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
 			info.Text = "Items: " .. count
-			warn("[N1V1LON DEBUG] Highlights Items найдено: " .. count)
+			warn("[N1V1LON DEBUG] Highlights Items найдено: " .. count .. " — примеры: " .. table.concat(samples, ", "))
 		end
 	end
 
