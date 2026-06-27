@@ -1,190 +1,174 @@
 return function(container, player, uis, rs)
 	warn("[N1V1LON DEBUG] Aimbot widget loaded")
 	local aimOn = false
-	local trigOn = false
-	local fovRadius = 150
-	local fovCircle = nil
+	local zoneRadius = 30
+	local hitCount = 5
 	local aimConn = nil
-	local trigConn = nil
 
-	local drawingOk = pcall(function() return Drawing.new("Circle") end)
-
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, 0, 0, 32)
+	local btn = Instance.new("Frame")
+	btn.Size = UDim2.new(1, 0, 0, 80)
 	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	btn.BorderSizePixel = 0
-	btn.Text = "  Aimbot + FOV"
-	btn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	btn.TextSize = 13
-	btn.TextXAlignment = Enum.TextXAlignment.Left
-	btn.Font = Enum.Font.Gotham
 	btn.Parent = container
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 
-	local aimStatus = Instance.new("TextLabel")
-	aimStatus.Size = UDim2.new(0, 50, 1, 0)
-	aimStatus.Position = UDim2.new(1, -55, 0, 0)
-	aimStatus.BackgroundTransparency = 1
-	aimStatus.Text = "OFF"
-	aimStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-	aimStatus.TextSize = 12
-	aimStatus.Font = Enum.Font.GothamBold
-	aimStatus.Parent = btn
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0, 120, 0, 20)
+	label.Position = UDim2.new(0, 8, 0, 4)
+	label.BackgroundTransparency = 1
+	label.Text = "  Aimbot"
+	label.TextColor3 = Color3.fromRGB(200, 200, 220)
+	label.TextSize = 13
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Font = Enum.Font.Gotham
+	label.Parent = btn
 
-	local function getClosestTarget(fovPixels)
-		local mouse = player:GetMouse()
-		local mPos = Vector2.new(mouse.X, mouse.Y)
-		local best = nil
-		local bestDist = fovPixels or 9999
-		local cam = workspace.CurrentCamera
+	local status = Instance.new("TextButton")
+	status.Size = UDim2.new(0, 50, 0, 20)
+	status.Position = UDim2.new(1, -55, 0, 4)
+	status.BackgroundTransparency = 1
+	status.Text = "OFF"
+	status.TextColor3 = Color3.fromRGB(140, 60, 60)
+	status.TextSize = 12
+	status.Font = Enum.Font.GothamBold
+	status.Parent = btn
 
+	local zoneLabel = Instance.new("TextLabel")
+	zoneLabel.Size = UDim2.new(0, 130, 0, 14)
+	zoneLabel.Position = UDim2.new(0, 8, 0, 26)
+	zoneLabel.BackgroundTransparency = 1
+	zoneLabel.Text = "Zone radius: " .. zoneRadius
+	zoneLabel.TextColor3 = Color3.fromRGB(160, 200, 160)
+	zoneLabel.TextSize = 11
+	zoneLabel.TextXAlignment = Enum.TextXAlignment.Left
+	zoneLabel.Font = Enum.Font.Gotham
+	zoneLabel.Parent = btn
+
+	local zoneBar = Instance.new("TextButton")
+	zoneBar.Size = UDim2.new(1, -20, 0, 8)
+	zoneBar.Position = UDim2.new(0, 10, 0, 42)
+	zoneBar.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+	zoneBar.BorderSizePixel = 0
+	zoneBar.Text = ""
+	zoneBar.AutoButtonColor = false
+	zoneBar.Parent = btn
+	Instance.new("UICorner", zoneBar).CornerRadius = UDim.new(0, 3)
+
+	local zoneFill = Instance.new("Frame")
+	zoneFill.Size = UDim2.new(zoneRadius / 200, 0, 1, 0)
+	zoneFill.BackgroundColor3 = Color3.fromRGB(60, 200, 120)
+	zoneFill.BorderSizePixel = 0
+	zoneFill.Parent = zoneBar
+	Instance.new("UICorner", zoneFill).CornerRadius = UDim.new(0, 3)
+
+	zoneBar.MouseButton1Click:Connect(function()
+		local mx = uis:GetMouseLocation().X
+		local posX = zoneBar.AbsolutePosition.X
+		local sizeX = zoneBar.AbsoluteSize.X
+		if sizeX > 0 then
+			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
+			zoneRadius = math.max(5, math.floor(frac * 200))
+			zoneLabel.Text = "Zone radius: " .. zoneRadius
+			zoneFill.Size = UDim2.new(frac, 0, 1, 0)
+		end
+	end)
+
+	local hitLabel = Instance.new("TextLabel")
+	hitLabel.Size = UDim2.new(0, 130, 0, 14)
+	hitLabel.Position = UDim2.new(0, 8, 0, 54)
+	hitLabel.BackgroundTransparency = 1
+	hitLabel.Text = "Hit count: " .. hitCount
+	hitLabel.TextColor3 = Color3.fromRGB(200, 200, 100)
+	hitLabel.TextSize = 11
+	hitLabel.TextXAlignment = Enum.TextXAlignment.Left
+	hitLabel.Font = Enum.Font.Gotham
+	hitLabel.Parent = btn
+
+	local hitBar = Instance.new("TextButton")
+	hitBar.Size = UDim2.new(1, -20, 0, 8)
+	hitBar.Position = UDim2.new(0, 10, 0, 70)
+	hitBar.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+	hitBar.BorderSizePixel = 0
+	hitBar.Text = ""
+	hitBar.AutoButtonColor = false
+	hitBar.Parent = btn
+	Instance.new("UICorner", hitBar).CornerRadius = UDim.new(0, 3)
+
+	local hitFill = Instance.new("Frame")
+	hitFill.Size = UDim2.new(hitCount / 50, 0, 1, 0)
+	hitFill.BackgroundColor3 = Color3.fromRGB(200, 200, 100)
+	hitFill.BorderSizePixel = 0
+	hitFill.Parent = hitBar
+	Instance.new("UICorner", hitFill).CornerRadius = UDim.new(0, 3)
+
+	hitBar.MouseButton1Click:Connect(function()
+		local mx = uis:GetMouseLocation().X
+		local posX = hitBar.AbsolutePosition.X
+		local sizeX = hitBar.AbsoluteSize.X
+		if sizeX > 0 then
+			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
+			hitCount = math.max(1, math.floor(frac * 50))
+			hitLabel.Text = "Hit count: " .. hitCount
+			hitFill.Size = UDim2.new(frac, 0, 1, 0)
+		end
+	end)
+
+	local function doAimbot()
+		local char = player.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+		if not root then return end
+		local pos = root.Position
+
+		local playerChars = {}
 		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-			if p == player then continue end
 			local c = p.Character
-			if not c then continue end
-			local root = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-			local hum = c:FindFirstChildOfClass("Humanoid")
-			if not root or not hum or hum.Health <= 0 then continue end
-			local sp, vis = cam:WorldToViewportPoint(root.Position)
-			if vis then
-				local dist = (Vector2.new(sp.X, sp.Y) - mPos).Magnitude
-				if dist < bestDist then
-					bestDist = dist
-					best = {char = c, root = root, hum = hum}
+			if c then
+				playerChars[c] = true
+			end
+		end
+
+		-- speed boost
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		local oldWS = hum and hum.WalkSpeed or 16
+		if hum then hum.WalkSpeed = oldWS * 2 end
+
+		for h = 1, hitCount do
+			for _, part in ipairs(workspace:GetDescendants()) do
+				if part == char then continue end
+				if playerChars[part] then continue end
+				local nhum = part:FindFirstChildOfClass("Humanoid")
+				if nhum and nhum.Health > 0 then
+					local r = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
+					if r and (r.Position - pos).Magnitude <= zoneRadius then
+						pcall(function() nhum:TakeDamage(15) end)
+					end
 				end
 			end
+			task.wait(0.05)
 		end
-		return best
+
+		if hum then hum.WalkSpeed = oldWS end
 	end
 
-	local function getClosestInWorld(range)
-		local char = player.Character
-		if not char then return nil end
-		local myRoot = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-		if not myRoot then return nil end
-		local ppos = myRoot.Position
-		local best = nil
-		local bestDist = range or 100
-
-		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-			if p == player then continue end
-			local c = p.Character
-			if not c then continue end
-			local root = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-			local hum = c:FindFirstChildOfClass("Humanoid")
-			if not root or not hum or hum.Health <= 0 then continue end
-			local dist = (root.Position - ppos).Magnitude
-			if dist < bestDist then
-				bestDist = dist
-				best = {char = c, root = root, hum = hum}
-			end
-		end
-		return best
-	end
-
-	local function createFOV()
-		if not drawingOk then warn("[N1V1LON DEBUG] Drawing not available, no FOV circle"); return end
-		if fovCircle then pcall(function() fovCircle:Remove() end) end
-		fovCircle = Drawing.new("Circle")
-		fovCircle.Visible = false
-		fovCircle.Radius = fovRadius
-		fovCircle.Thickness = 1
-		fovCircle.NumSides = 64
-		fovCircle.Color = Color3.fromRGB(255, 255, 255)
-		fovCircle.Transparency = 0.7
-		fovCircle.Position = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
-		warn("[N1V1LON DEBUG] FOV circle created, radius " .. fovRadius)
-	end
-
-	local function updateFOV()
-		if not fovCircle then return end
-		local cam = workspace.CurrentCamera
-		fovCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-		fovCircle.Radius = fovRadius
-	end
-
-	local function aimAtTarget(target)
-		if not target then return end
-		local mouse = player:GetMouse()
-		-- silent aim: redirect mouse target
-		local head = target.char:FindFirstChild("Head")
-		if head then
-			pcall(function() mouse.TargetFilter = target.char end)
-			pcall(function() mouse.Hit = head.CFrame end)
-			pcall(function() mouse.Target = head end)
-		else
-			pcall(function() mouse.Hit = target.root.CFrame + Vector3.new(0, 2, 0) end)
-		end
-	end
-
-	local function doTrigger()
-		if not trigOn then return end
-		local target = getClosestTarget(fovRadius)
-		if target then
-			local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
-			if tool then
-				pcall(function() tool:Activate() end)
-			else
-				-- simulate click
-				pcall(function() mouse1click() end)
-			end
-		end
-	end
-
-	local function enableAimbot()
-		if aimConn then aimConn:Disconnect() end
-		aimConn = rs.RenderStepped:Connect(function()
-			if not aimOn then return end
-			local target = getClosestTarget(fovRadius)
-			if target then
-				aimAtTarget(target)
-				aimTarget = target
-			else
-				aimTarget = nil
-			end
-			if fovCircle then
-				fovCircle.Visible = aimOn
-				updateFOV()
-			end
-		end)
-	end
-
-	local function enableTrigger()
-		if trigConn then trigConn:Disconnect() end
-		trigConn = uis.InputBegan:Connect(function(input, processed)
-			if processed then return end
-			if trigOn and input.UserInputType == Enum.UserInputType.MouseButton1 then
-				doTrigger()
-			end
-		end)
-		-- also auto-fire while holding
-		local holdLoop
-		holdLoop = rs.Heartbeat:Connect(function()
-			if not trigOn then if holdLoop then holdLoop:Disconnect() end return end
-			local target = getClosestTarget(fovRadius)
-			if target then
-				pcall(function() mouse1press() end)
-			else
-				pcall(function() mouse1release() end)
-			end
-		end)
-	end
-
-	btn.MouseButton1Click:Connect(function()
+	status.MouseButton1Click:Connect(function()
 		aimOn = not aimOn
 		warn("[N1V1LON DEBUG] Aimbot toggled: " .. tostring(aimOn))
 		if aimOn then
-			aimStatus.Text = "ON"
-			aimStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			createFOV()
-			enableAimbot()
-			enableTrigger()
+			status.Text = "ON"
+			status.TextColor3 = Color3.fromRGB(60, 200, 120)
+			if aimConn then aimConn:Disconnect() end
+			aimConn = uis.InputBegan:Connect(function(input, processed)
+				if processed then return end
+				if aimOn and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+					warn("[N1V1LON DEBUG] Aimbot triggered")
+					doAimbot()
+				end
+			end)
 		else
-			aimStatus.Text = "OFF"
-			aimStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
+			status.Text = "OFF"
+			status.TextColor3 = Color3.fromRGB(140, 60, 60)
 			if aimConn then aimConn:Disconnect(); aimConn = nil end
-			if trigConn then trigConn:Disconnect(); trigConn = nil end
-			if fovCircle then pcall(function() fovCircle:Remove() end); fovCircle = nil end
 		end
 	end)
 end
