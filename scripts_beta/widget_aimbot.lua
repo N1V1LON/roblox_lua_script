@@ -153,6 +153,13 @@ return function(container, player, uis, rs)
 		return targets
 	end
 
+	local function damageNPC(nhum)
+		nhum.Health = nhum.Health - 15
+		if nhum.Health <= 0 then
+			pcall(function() nhum:BreakJoints() end)
+		end
+	end
+
 	local function doAimbot()
 		local targets = getNPCTargets()
 		warn("[N1V1LON DEBUG] Aimbot: целей найдено " .. #targets)
@@ -160,10 +167,7 @@ return function(container, player, uis, rs)
 		for h = 1, hitCount do
 			for _, nhum in ipairs(targets) do
 				if nhum.Health > 0 then
-					local ok = pcall(function() nhum:TakeDamage(15) end)
-					if not ok then
-						pcall(function() nhum:BreakJoints() end)
-					end
+					damageNPC(nhum)
 				end
 			end
 		end
