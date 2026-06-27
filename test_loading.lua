@@ -1,7 +1,8 @@
--- N1V1LON Interface with Tabs (single-file beta)
+-- N1V1LON Interface v2 (single-file beta)
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
 _G.N1V1LON = _G.N1V1LON or {}
@@ -16,14 +17,105 @@ _G.N1V1LON.logs = {}
 local function addLog(msg)
 	local t = os.time()
 	local info = ""
-	local ok, result = pcall(function()
-		local s = game:GetService("HttpService")
-		info = s:FormatUtc(s:GetCurrentDateTime(), "!time")
+	local ok = pcall(function()
+		info = HttpService:FormatUtc(HttpService:GetCurrentDateTime(), "!time")
 	end)
 	if not ok then info = tostring(t) end
 	table.insert(_G.N1V1LON.logs, "[" .. info .. "] " .. msg)
 end
 
+-- ==================== SETTINGS PERSISTENCE ====================
+local SETTINGS_PATH = "N1V1LON_settings.txt"
+local settings = {
+	language = "ru",
+	theme = "dark",
+}
+
+local function saveSettings()
+	local ok = pcall(function()
+		writefile(SETTINGS_PATH, HttpService:JSONEncode(settings))
+	end)
+	if ok then addLog("Settings saved") end
+end
+
+local function loadSettings()
+	local ok, raw = pcall(function()
+		return readfile(SETTINGS_PATH)
+	end)
+	if ok and raw then
+		local ok2, data = pcall(function()
+			return HttpService:JSONDecode(raw)
+		end)
+		if ok2 and type(data) == "table" then
+			if data.language then settings.language = data.language end
+			if data.theme then settings.theme = data.theme end
+			addLog("Settings loaded: lang=" .. settings.language .. " theme=" .. settings.theme)
+		end
+	end
+end
+loadSettings()
+
+-- ==================== THEME COLORS ====================
+local themes = {
+	dark = {
+		menuBg = Color3.fromRGB(20, 20, 30),
+		titleBarBg = Color3.fromRGB(30, 30, 45),
+		tabsBg = Color3.fromRGB(30, 30, 45),
+		widgetBg = Color3.fromRGB(35, 35, 50),
+		btnBg = Color3.fromRGB(45, 45, 60),
+		btnActiveBg = Color3.fromRGB(60, 60, 90),
+		btnHoverBg = Color3.fromRGB(55, 55, 75),
+		textMain = Color3.fromRGB(200, 200, 220),
+		textDim = Color3.fromRGB(120, 120, 160),
+		textTitle = Color3.fromRGB(220, 220, 255),
+		accentBlue = Color3.fromRGB(100, 200, 255),
+		statusOn = Color3.fromRGB(60, 200, 120),
+		statusOff = Color3.fromRGB(140, 60, 60),
+	},
+	light = {
+		menuBg = Color3.fromRGB(240, 240, 245),
+		titleBarBg = Color3.fromRGB(225, 225, 235),
+		tabsBg = Color3.fromRGB(225, 225, 235),
+		widgetBg = Color3.fromRGB(230, 230, 240),
+		btnBg = Color3.fromRGB(215, 215, 225),
+		btnActiveBg = Color3.fromRGB(200, 215, 235),
+		btnHoverBg = Color3.fromRGB(220, 220, 230),
+		textMain = Color3.fromRGB(40, 40, 55),
+		textDim = Color3.fromRGB(100, 100, 120),
+		textTitle = Color3.fromRGB(20, 20, 35),
+		accentBlue = Color3.fromRGB(30, 120, 200),
+		statusOn = Color3.fromRGB(30, 150, 80),
+		statusOff = Color3.fromRGB(180, 50, 50),
+	},
+}
+
+local currentTheme = themes[settings.theme] or themes.dark
+local allThemed = {}
+
+local function themeApply()
+	for _, entry in ipairs(allThemed) do
+		pcall(function()
+			if entry.prop == "BackgroundColor3" then
+				entry.obj.BackgroundColor3 = entry.color
+			elseif entry.prop == "TextColor3" then
+				entry.obj.TextColor3 = entry.color
+			end
+		end)
+	end
+end
+
+local function themeRegister(obj, prop, colorKey)
+	table.insert(allThemed, { obj = obj, prop = prop, colorKey = colorKey })
+	pcall(function()
+		if prop == "BackgroundColor3" then
+			obj.BackgroundColor3 = currentTheme[colorKey]
+		elseif prop == "TextColor3" then
+			obj.TextColor3 = currentTheme[colorKey]
+		end
+	end)
+end
+
+-- ==================== MAIN SCRIPT ====================
 local ok, err = pcall(function()
 	if not player then return end
 
@@ -32,13 +124,12 @@ local ok, err = pcall(function()
 		if not char then return end
 		local head = char:FindFirstChild("Head")
 		if not head then return end
-		local chat = game:GetService("Chat")
 		pcall(function()
-			chat:Chat(head, msg, color or Color3.fromRGB(200, 200, 255))
+			game:GetService("Chat"):Chat(head, msg, color or Color3.fromRGB(200, 200, 255))
 		end)
 	end
 
-	addLog("Player found: " .. player.Name)
+	addLog("Player: " .. player.Name)
 
 	local pg = player:WaitForChild("PlayerGui", 10)
 	if not pg then return end
@@ -56,7 +147,7 @@ local ok, err = pcall(function()
 		if okFn and type(playersTbl) == "table" then
 			local pData = playersTbl[player.UserId]
 			if pData and pData.blocked == true then
-				warn("N1V1LON: blocked " .. player.Name .. " (" .. player.UserId .. ")")
+				warn("N1V1LON: blocked " .. player.Name)
 				chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
 				return
 			end
@@ -72,15 +163,12 @@ local ok, err = pcall(function()
 	task.spawn(function()
 		while gui and gui.Parent do
 			task.wait(5)
-			local okB2, raw2 = pcall(function()
-				return game:HttpGet(blockUrl, true)
-			end)
+			local okB2, raw2 = pcall(function() return game:HttpGet(blockUrl, true) end)
 			if okB2 and raw2 then
 				local okFn2, tbl2 = pcall(loadstring, raw2)
 				if okFn2 and type(tbl2) == "table" then
 					local pData2 = tbl2[player.UserId]
 					if pData2 and pData2.blocked == true then
-						warn("N1V1LON: blocked " .. player.Name .. " (" .. player.UserId .. ")")
 						chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
 						if gui then pcall(function() gui:Destroy() end) end
 						_G.N1V1LON.blocked = true
@@ -91,13 +179,14 @@ local ok, err = pcall(function()
 		end
 	end)
 
-	-- Message system
+	-- Message toast
 	local msgFrame = Instance.new("Frame")
-	msgFrame.Size = UDim2.new(0.6, 0, 0, 24)
-	msgFrame.Position = UDim2.new(0.2, 0, 0, 60)
+	msgFrame.Size = UDim2.new(0, 220, 0, 24)
+	msgFrame.Position = UDim2.new(0.5, -110, 0, 12)
 	msgFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 	msgFrame.BackgroundTransparency = 0.3
 	msgFrame.BorderSizePixel = 0
+	msgFrame.ZIndex = 100
 	msgFrame.Parent = gui
 	Instance.new("UICorner", msgFrame).CornerRadius = UDim.new(0, 6)
 
@@ -110,6 +199,7 @@ local ok, err = pcall(function()
 	msgLabel.TextSize = 12
 	msgLabel.TextXAlignment = Enum.TextXAlignment.Left
 	msgLabel.Font = Enum.Font.Gotham
+	msgLabel.ZIndex = 101
 	msgLabel.Parent = msgFrame
 	msgFrame.Visible = false
 
@@ -128,11 +218,11 @@ local ok, err = pcall(function()
 		end)
 	end
 
-	-- Icon Button
+	-- Icon Button with β label
 	local icon = Instance.new("TextButton")
 	icon.Name = "Icon"
 	icon.Size = UDim2.new(0, 48, 0, 48)
-	icon.Position = UDim2.new(1, -68, 0, 20)
+	icon.Position = UDim2.new(1, -68, 0, 12)
 	icon.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 	icon.BorderSizePixel = 0
 	icon.Text = "N"
@@ -140,30 +230,44 @@ local ok, err = pcall(function()
 	icon.TextSize = 28
 	icon.Font = Enum.Font.GothamBold
 	icon.Draggable = true
+	icon.AutoButtonColor = false
 	icon.Parent = gui
 	Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 12)
 
-	-- Menu Frame
+	local betaLabel = Instance.new("TextLabel")
+	betaLabel.Size = UDim2.new(0, 14, 0, 14)
+	betaLabel.Position = UDim2.new(1, -14, 1, -14)
+	betaLabel.BackgroundTransparency = 1
+	betaLabel.Text = "β"
+	betaLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+	betaLabel.TextSize = 11
+	betaLabel.Font = Enum.Font.GothamBold
+	betaLabel.ZIndex = 2
+	betaLabel.Parent = icon
+
+	-- Menu Frame (compact)
 	local menu = Instance.new("Frame")
 	menu.Name = "Menu"
-	menu.Size = UDim2.new(0, 340, 0, 480)
-	menu.Position = UDim2.new(0.5, -170, 0.5, -240)
+	menu.Size = UDim2.new(0, 300, 0, 400)
+	menu.Position = UDim2.new(0.5, -150, 0.5, -200)
 	menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 	menu.BorderSizePixel = 0
 	menu.Visible = false
 	menu.Parent = gui
 	Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 10)
+	themeRegister(menu, "BackgroundColor3", "menuBg")
 
 	-- Title Bar
 	local titleBar = Instance.new("Frame")
-	titleBar.Size = UDim2.new(1, 0, 0, 32)
+	titleBar.Size = UDim2.new(1, 0, 0, 30)
 	titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 	titleBar.BorderSizePixel = 0
 	titleBar.Parent = menu
 	Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
+	themeRegister(titleBar, "BackgroundColor3", "titleBarBg")
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(0, 140, 1, 0)
+	title.Size = UDim2.new(0, 120, 1, 0)
 	title.Position = UDim2.new(0, 8, 0, 0)
 	title.BackgroundTransparency = 1
 	title.Text = "N1V1LON"
@@ -172,34 +276,35 @@ local ok, err = pcall(function()
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Font = Enum.Font.GothamBold
 	title.Parent = titleBar
+	themeRegister(title, "TextColor3", "textTitle")
 
 	local betaBtn = Instance.new("TextButton")
-	betaBtn.Size = UDim2.new(0, 28, 1, 0)
-	betaBtn.Position = UDim2.new(1, -96, 0, 0)
+	betaBtn.Size = UDim2.new(0, 26, 1, 0)
+	betaBtn.Position = UDim2.new(1, -90, 0, 0)
 	betaBtn.BackgroundTransparency = 1
 	betaBtn.Text = "β"
 	betaBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
-	betaBtn.TextSize = 18
+	betaBtn.TextSize = 16
 	betaBtn.Font = Enum.Font.GothamBold
 	betaBtn.Parent = titleBar
 
 	local logBtn = Instance.new("TextButton")
-	logBtn.Size = UDim2.new(0, 28, 1, 0)
-	logBtn.Position = UDim2.new(1, -64, 0, 0)
+	logBtn.Size = UDim2.new(0, 26, 1, 0)
+	logBtn.Position = UDim2.new(1, -60, 0, 0)
 	logBtn.BackgroundTransparency = 1
 	logBtn.Text = "^"
 	logBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
-	logBtn.TextSize = 18
+	logBtn.TextSize = 16
 	logBtn.Font = Enum.Font.GothamBold
 	logBtn.Parent = titleBar
 
 	local closeBtn = Instance.new("TextButton")
-	closeBtn.Size = UDim2.new(0, 32, 1, 0)
-	closeBtn.Position = UDim2.new(1, -32, 0, 0)
+	closeBtn.Size = UDim2.new(0, 30, 1, 0)
+	closeBtn.Position = UDim2.new(1, -30, 0, 0)
 	closeBtn.BackgroundTransparency = 1
 	closeBtn.Text = "X"
 	closeBtn.TextColor3 = Color3.fromRGB(200, 60, 60)
-	closeBtn.TextSize = 18
+	closeBtn.TextSize = 16
 	closeBtn.Font = Enum.Font.GothamBold
 	closeBtn.Parent = titleBar
 
@@ -213,81 +318,69 @@ local ok, err = pcall(function()
 
 	-- Tabs
 	local tabsFrame = Instance.new("Frame")
-	tabsFrame.Size = UDim2.new(1, 0, 0, 32)
-	tabsFrame.Position = UDim2.new(0, 0, 0, 32)
+	tabsFrame.Size = UDim2.new(1, 0, 0, 30)
+	tabsFrame.Position = UDim2.new(0, 0, 0, 30)
 	tabsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 	tabsFrame.BorderSizePixel = 0
 	tabsFrame.Parent = menu
+	Instance.new("UICorner", tabsFrame).CornerRadius = UDim.new(0, 0)
+	themeRegister(tabsFrame, "BackgroundColor3", "tabsBg")
 
-	local tabPlayer = Instance.new("TextButton")
-	tabPlayer.Size = UDim2.new(1/3, 0, 1, 0)
-	tabPlayer.Position = UDim2.new(0, 0, 0, 0)
-	tabPlayer.BackgroundTransparency = 1
-	tabPlayer.Text = "Player"
-	tabPlayer.TextColor3 = Color3.fromRGB(120, 120, 160)
-	tabPlayer.TextSize = 11
-	tabPlayer.Font = Enum.Font.GothamBold
-	tabPlayer.Parent = tabsFrame
+	local function makeTabBtn(name, parent, posX)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1/3, 0, 1, 0)
+		btn.Position = UDim2.new(posX, 0, 0, 0)
+		btn.BackgroundTransparency = 1
+		btn.Text = name
+		btn.TextColor3 = Color3.fromRGB(120, 120, 160)
+		btn.TextSize = 11
+		btn.Font = Enum.Font.GothamBold
+		btn.AutoButtonColor = false
+		btn.Parent = parent
+		return btn
+	end
 
-	local tabServer = Instance.new("TextButton")
-	tabServer.Size = UDim2.new(1/3, 0, 1, 0)
-	tabServer.Position = UDim2.new(1/3, 0, 0, 0)
-	tabServer.BackgroundTransparency = 1
-	tabServer.Text = "Server"
-	tabServer.TextColor3 = Color3.fromRGB(120, 120, 160)
-	tabServer.TextSize = 11
-	tabServer.Font = Enum.Font.GothamBold
-	tabServer.Parent = tabsFrame
+	local tabPlayer = makeTabBtn("Player", tabsFrame, 0)
+	local tabServer = makeTabBtn("Server", tabsFrame, 1/3)
+	local tabSettings = makeTabBtn("Settings", tabsFrame, 2/3)
+	themeRegister(tabPlayer, "TextColor3", "textDim")
+	themeRegister(tabServer, "TextColor3", "textDim")
+	themeRegister(tabSettings, "TextColor3", "textDim")
 
-	local tabSettings = Instance.new("TextButton")
-	tabSettings.Size = UDim2.new(1/3, 0, 1, 0)
-	tabSettings.Position = UDim2.new(2/3, 0, 0, 0)
-	tabSettings.BackgroundTransparency = 1
-	tabSettings.Text = "Settings"
-	tabSettings.TextColor3 = Color3.fromRGB(120, 120, 160)
-	tabSettings.TextSize = 11
-	tabSettings.Font = Enum.Font.GothamBold
-	tabSettings.Parent = tabsFrame
-
-	-- Content Container
+	-- Content
 	local content = Instance.new("ScrollingFrame")
-	content.Size = UDim2.new(1, -20, 1, -74)
-	content.Position = UDim2.new(0, 10, 0, 74)
+	content.Size = UDim2.new(1, -16, 1, -70)
+	content.Position = UDim2.new(0, 8, 0, 68)
 	content.BackgroundTransparency = 1
 	content.BorderSizePixel = 0
-	content.ScrollBarThickness = 4
+	content.ScrollBarThickness = 3
+	content.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
 	content.CanvasSize = UDim2.new(0, 0, 0, 0)
 	content.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	content.Parent = menu
-	Instance.new("UIListLayout", content).Padding = UDim.new(0, 6)
+	Instance.new("UIListLayout", content).Padding = UDim.new(0, 5)
 
-	-- Tab Contents
+	-- Tab contents
 	local playerTab = Instance.new("Frame")
 	playerTab.Size = UDim2.new(1, 0, 0, 0)
 	playerTab.BackgroundTransparency = 1
 	playerTab.Visible = true
 	playerTab.Parent = content
-	local playerLayout = Instance.new("UIListLayout")
-	playerLayout.Padding = UDim.new(0, 6)
-	playerLayout.Parent = playerTab
+	Instance.new("UIListLayout", playerTab).Padding = UDim.new(0, 5)
 
 	local serverTab = Instance.new("Frame")
 	serverTab.Size = UDim2.new(1, 0, 0, 0)
 	serverTab.BackgroundTransparency = 1
 	serverTab.Visible = false
 	serverTab.Parent = content
-	local serverLayout = Instance.new("UIListLayout")
-	serverLayout.Padding = UDim.new(0, 6)
-	serverLayout.Parent = serverTab
+	Instance.new("UIListLayout", serverTab).Padding = UDim.new(0, 5)
 
 	local settingsTab = Instance.new("Frame")
 	settingsTab.Size = UDim2.new(1, 0, 0, 0)
 	settingsTab.BackgroundTransparency = 1
 	settingsTab.Visible = false
 	settingsTab.Parent = content
-	local settingsLayout = Instance.new("UIListLayout")
-	settingsLayout.Padding = UDim.new(0, 6)
-	settingsLayout.Parent = settingsTab
+	Instance.new("UIListLayout", settingsTab).Padding = UDim.new(0, 5)
 
 	-- Tab switching
 	local function switchTab(activeTab)
@@ -295,33 +388,25 @@ local ok, err = pcall(function()
 		serverTab.Visible = false
 		settingsTab.Visible = false
 
-		tabPlayer.TextColor3 = Color3.fromRGB(120, 120, 160)
-		tabServer.TextColor3 = Color3.fromRGB(120, 120, 160)
-		tabSettings.TextColor3 = Color3.fromRGB(120, 120, 160)
+		tabPlayer.TextColor3 = currentTheme.textDim
+		tabServer.TextColor3 = currentTheme.textDim
+		tabSettings.TextColor3 = currentTheme.textDim
 
 		if activeTab == "player" then
 			playerTab.Visible = true
-			tabPlayer.TextColor3 = Color3.fromRGB(100, 200, 255)
+			tabPlayer.TextColor3 = currentTheme.accentBlue
 		elseif activeTab == "server" then
 			serverTab.Visible = true
-			tabServer.TextColor3 = Color3.fromRGB(100, 200, 255)
+			tabServer.TextColor3 = currentTheme.accentBlue
 		elseif activeTab == "settings" then
 			settingsTab.Visible = true
-			tabSettings.TextColor3 = Color3.fromRGB(100, 200, 255)
+			tabSettings.TextColor3 = currentTheme.accentBlue
 		end
 	end
 
-	tabPlayer.MouseButton1Click:Connect(function()
-		switchTab("player")
-	end)
-
-	tabServer.MouseButton1Click:Connect(function()
-		switchTab("server")
-	end)
-
-	tabSettings.MouseButton1Click:Connect(function()
-		switchTab("settings")
-	end)
+	tabPlayer.MouseButton1Click:Connect(function() switchTab("player") end)
+	tabServer.MouseButton1Click:Connect(function() switchTab("server") end)
+	tabSettings.MouseButton1Click:Connect(function() switchTab("settings") end)
 
 	-- ==================== PLAYER TAB ====================
 
@@ -331,24 +416,27 @@ local ok, err = pcall(function()
 	local jumpReqConn = nil
 
 	local infJumpBtn = Instance.new("TextButton")
-	infJumpBtn.Size = UDim2.new(1, 0, 0, 32)
-	infJumpBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	infJumpBtn.Size = UDim2.new(1, 0, 0, 30)
+	infJumpBtn.BackgroundColor3 = currentTheme.widgetBg
 	infJumpBtn.BorderSizePixel = 0
 	infJumpBtn.Text = "  Infinite Jump"
-	infJumpBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	infJumpBtn.TextSize = 13
+	infJumpBtn.TextColor3 = currentTheme.textMain
+	infJumpBtn.TextSize = 12
 	infJumpBtn.TextXAlignment = Enum.TextXAlignment.Left
 	infJumpBtn.Font = Enum.Font.Gotham
+	infJumpBtn.AutoButtonColor = false
 	infJumpBtn.Parent = playerTab
 	Instance.new("UICorner", infJumpBtn).CornerRadius = UDim.new(0, 6)
+	themeRegister(infJumpBtn, "BackgroundColor3", "widgetBg")
+	themeRegister(infJumpBtn, "TextColor3", "textMain")
 
 	local infJumpStatus = Instance.new("TextLabel")
-	infJumpStatus.Size = UDim2.new(0, 50, 1, 0)
-	infJumpStatus.Position = UDim2.new(1, -55, 0, 0)
+	infJumpStatus.Size = UDim2.new(0, 44, 1, 0)
+	infJumpStatus.Position = UDim2.new(1, -48, 0, 0)
 	infJumpStatus.BackgroundTransparency = 1
 	infJumpStatus.Text = "OFF"
-	infJumpStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-	infJumpStatus.TextSize = 12
+	infJumpStatus.TextColor3 = currentTheme.statusOff
+	infJumpStatus.TextSize = 11
 	infJumpStatus.Font = Enum.Font.GothamBold
 	infJumpStatus.Parent = infJumpBtn
 
@@ -357,9 +445,7 @@ local ok, err = pcall(function()
 		if infJumpOn then
 			local function apply(char)
 				local hum = char:FindFirstChildOfClass("Humanoid")
-				if hum then
-					hum.UseJumpPower = false
-				end
+				if hum then hum.UseJumpPower = false end
 			end
 			local char = player.Character
 			if char then apply(char) end
@@ -367,20 +453,18 @@ local ok, err = pcall(function()
 			jumpReqConn = UserInputService.JumpRequest:Connect(function()
 				if infJumpOn then
 					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-					if hum then
-						hum:ChangeState(Enum.HumanoidStateType.Jumping)
-					end
+					if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 				end
 			end)
 			infJumpStatus.Text = "ON"
-			infJumpStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
+			infJumpStatus.TextColor3 = currentTheme.statusOn
 			addLog("InfJump ON")
 			_G.N1V1LON.showMsg("InfJump ON")
 		else
 			if infJumpConn then infJumpConn:Disconnect(); infJumpConn = nil end
 			if jumpReqConn then jumpReqConn:Disconnect(); jumpReqConn = nil end
 			infJumpStatus.Text = "OFF"
-			infJumpStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
+			infJumpStatus.TextColor3 = currentTheme.statusOff
 			addLog("InfJump OFF")
 			_G.N1V1LON.showMsg("InfJump OFF")
 		end
@@ -388,93 +472,77 @@ local ok, err = pcall(function()
 
 	-- Highlights Widget
 	local highlightsFrame = Instance.new("Frame")
-	highlightsFrame.Size = UDim2.new(1, 0, 0, 68)
-	highlightsFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	highlightsFrame.Size = UDim2.new(1, 0, 0, 60)
+	highlightsFrame.BackgroundColor3 = currentTheme.widgetBg
 	highlightsFrame.BorderSizePixel = 0
 	highlightsFrame.Parent = playerTab
 	Instance.new("UICorner", highlightsFrame).CornerRadius = UDim.new(0, 6)
+	themeRegister(highlightsFrame, "BackgroundColor3", "widgetBg")
 
 	local highlightsTitle = Instance.new("TextLabel")
-	highlightsTitle.Size = UDim2.new(0, 120, 0, 20)
-	highlightsTitle.Position = UDim2.new(0, 8, 0, 4)
+	highlightsTitle.Size = UDim2.new(1, -12, 0, 18)
+	highlightsTitle.Position = UDim2.new(0, 8, 0, 3)
 	highlightsTitle.BackgroundTransparency = 1
-	highlightsTitle.Text = "  Highlights"
-	highlightsTitle.TextColor3 = Color3.fromRGB(200, 200, 220)
-	highlightsTitle.TextSize = 13
+	highlightsTitle.Text = "Highlights"
+	highlightsTitle.TextColor3 = currentTheme.textMain
+	highlightsTitle.TextSize = 12
 	highlightsTitle.TextXAlignment = Enum.TextXAlignment.Left
 	highlightsTitle.Font = Enum.Font.Gotham
 	highlightsTitle.Parent = highlightsFrame
+	themeRegister(highlightsTitle, "TextColor3", "textMain")
 
-	local npcBtnGroup = Instance.new("Frame")
-	npcBtnGroup.Size = UDim2.new(0.5, -6, 0, 18)
-	npcBtnGroup.Position = UDim2.new(0, 8, 0, 26)
-	npcBtnGroup.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-	npcBtnGroup.BorderSizePixel = 0
-	npcBtnGroup.Parent = highlightsFrame
-	Instance.new("UICorner", npcBtnGroup).CornerRadius = UDim.new(0, 4)
+	local function makeHighlightBtn(parent, labelText, posX)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(0.5, -6, 0, 18)
+		btn.Position = UDim2.new(posX, posX == 0 and 8 or 2, 0, 24)
+		btn.BackgroundColor3 = currentTheme.btnBg
+		btn.BorderSizePixel = 0
+		btn.Text = ""
+		btn.AutoButtonColor = false
+		btn.Parent = parent
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+		themeRegister(btn, "BackgroundColor3", "btnBg")
 
-	local npcLabel = Instance.new("TextLabel")
-	npcLabel.Size = UDim2.new(0.7, -4, 1, 0)
-	npcLabel.Position = UDim2.new(0, 6, 0, 0)
-	npcLabel.BackgroundTransparency = 1
-	npcLabel.Text = "NPC"
-	npcLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
-	npcLabel.TextSize = 12
-	npcLabel.TextXAlignment = Enum.TextXAlignment.Left
-	npcLabel.Font = Enum.Font.Gotham
-	npcLabel.Parent = npcBtnGroup
+		local lbl = Instance.new("TextLabel")
+		lbl.Size = UDim2.new(0.65, -4, 1, 0)
+		lbl.Position = UDim2.new(0, 6, 0, 0)
+		lbl.BackgroundTransparency = 1
+		lbl.Text = labelText
+		lbl.TextColor3 = currentTheme.textMain
+		lbl.TextSize = 11
+		lbl.TextXAlignment = Enum.TextXAlignment.Left
+		lbl.Font = Enum.Font.Gotham
+		lbl.Parent = btn
+		themeRegister(lbl, "TextColor3", "textMain")
 
-	local npcStatus = Instance.new("TextLabel")
-	npcStatus.Size = UDim2.new(0.3, -2, 1, 0)
-	npcStatus.Position = UDim2.new(0.7, 2, 0, 0)
-	npcStatus.BackgroundTransparency = 1
-	npcStatus.Text = "OFF"
-	npcStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-	npcStatus.TextSize = 11
-	npcStatus.TextXAlignment = Enum.TextXAlignment.Center
-	npcStatus.Font = Enum.Font.GothamBold
-	npcStatus.Parent = npcBtnGroup
+		local st = Instance.new("TextLabel")
+		st.Size = UDim2.new(0.35, -2, 1, 0)
+		st.Position = UDim2.new(0.65, 2, 0, 0)
+		st.BackgroundTransparency = 1
+		st.Text = "OFF"
+		st.TextColor3 = currentTheme.statusOff
+		st.TextSize = 10
+		st.TextXAlignment = Enum.TextXAlignment.Center
+		st.Font = Enum.Font.GothamBold
+		st.Parent = btn
 
-	local itemBtnGroup = Instance.new("Frame")
-	itemBtnGroup.Size = UDim2.new(0.5, -6, 0, 18)
-	itemBtnGroup.Position = UDim2.new(0.5, 2, 0, 26)
-	itemBtnGroup.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-	itemBtnGroup.BorderSizePixel = 0
-	itemBtnGroup.Parent = highlightsFrame
-	Instance.new("UICorner", itemBtnGroup).CornerRadius = UDim.new(0, 4)
+		return btn, st
+	end
 
-	local itemLabel = Instance.new("TextLabel")
-	itemLabel.Size = UDim2.new(0.7, -4, 1, 0)
-	itemLabel.Position = UDim2.new(0, 6, 0, 0)
-	itemLabel.BackgroundTransparency = 1
-	itemLabel.Text = "Items"
-	itemLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
-	itemLabel.TextSize = 12
-	itemLabel.TextXAlignment = Enum.TextXAlignment.Left
-	itemLabel.Font = Enum.Font.Gotham
-	itemLabel.Parent = itemBtnGroup
-
-	local itemStatus = Instance.new("TextLabel")
-	itemStatus.Size = UDim2.new(0.3, -2, 1, 0)
-	itemStatus.Position = UDim2.new(0.7, 2, 0, 0)
-	itemStatus.BackgroundTransparency = 1
-	itemStatus.Text = "OFF"
-	itemStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-	itemStatus.TextSize = 11
-	itemStatus.TextXAlignment = Enum.TextXAlignment.Center
-	itemStatus.Font = Enum.Font.GothamBold
-	itemStatus.Parent = itemBtnGroup
+	local npcBtnGroup, npcStatus = makeHighlightBtn(highlightsFrame, "NPC", 0)
+	local itemBtnGroup, itemStatus = makeHighlightBtn(highlightsFrame, "Items", 0.5)
 
 	local infoLabel = Instance.new("TextLabel")
-	infoLabel.Size = UDim2.new(1, -16, 0, 14)
-	infoLabel.Position = UDim2.new(0, 8, 0, 48)
+	infoLabel.Size = UDim2.new(1, -12, 0, 12)
+	infoLabel.Position = UDim2.new(0, 8, 0, 46)
 	infoLabel.BackgroundTransparency = 1
 	infoLabel.Text = ""
-	infoLabel.TextColor3 = Color3.fromRGB(120, 120, 160)
-	infoLabel.TextSize = 10
+	infoLabel.TextColor3 = currentTheme.textDim
+	infoLabel.TextSize = 9
 	infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 	infoLabel.Font = Enum.Font.Gotham
 	infoLabel.Parent = highlightsFrame
+	themeRegister(infoLabel, "TextColor3", "textDim")
 
 	local npcOn = false
 	local itemsOn = false
@@ -498,8 +566,7 @@ local ok, err = pcall(function()
 		"Riot Shield", "Sapling", "Seed Box", "Sheet Metal", "Spear",
 		"Steak", "Stronghold Diamond Chest", "Tyre", "Washing Machine",
 		"Wolf Corpse", "Wolf Pelt", "Alpha Wolf Pelt", "Bandage",
-		"Anvil Base", "Lost Child", "Lost Child2", "Lost Child3",
-		"Lost Child4",
+		"Anvil Base", "Lost Child", "Lost Child2", "Lost Child3", "Lost Child4",
 	}
 
 	local function inList(name, list)
@@ -511,16 +578,14 @@ local ok, err = pcall(function()
 
 	local function toggleNPC()
 		if npcOn then
-			for _, hl in ipairs(npcHighlights) do
-				pcall(function() hl:Destroy() end)
-			end
+			for _, hl in ipairs(npcHighlights) do pcall(function() hl:Destroy() end) end
 			npcHighlights = {}
 			npcOn = false
 			npcStatus.Text = "OFF"
-			npcStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-			npcBtnGroup.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+			npcStatus.TextColor3 = currentTheme.statusOff
+			npcBtnGroup.BackgroundColor3 = currentTheme.btnBg
 			infoLabel.Text = ""
-			addLog("NPC highlight OFF")
+			addLog("NPC OFF")
 			_G.N1V1LON.showMsg("NPC highlight OFF")
 		else
 			local count = 0
@@ -528,7 +593,6 @@ local ok, err = pcall(function()
 				if obj:IsA("Model") and inList(obj.Name, npcNames) then
 					if not obj:FindFirstChildOfClass("Humanoid") then continue end
 					local hl = Instance.new("Highlight")
-					hl.Name = "N1V1LON_NPC"
 					hl.FillColor = Color3.fromRGB(255, 50, 50)
 					hl.FillTransparency = 0.5
 					hl.OutlineColor = Color3.fromRGB(255, 200, 50)
@@ -541,26 +605,24 @@ local ok, err = pcall(function()
 			end
 			npcOn = true
 			npcStatus.Text = "ON"
-			npcStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			npcBtnGroup.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+			npcStatus.TextColor3 = currentTheme.statusOn
+			npcBtnGroup.BackgroundColor3 = currentTheme.btnActiveBg
 			infoLabel.Text = "NPC: " .. count
 			addLog("NPC ON — " .. count)
-			_G.N1V1LON.showMsg("NPC ON — " .. count .. " найдено")
+			_G.N1V1LON.showMsg("NPC ON — " .. count)
 		end
 	end
 
 	local function toggleItems()
 		if itemsOn then
-			for _, hl in ipairs(itemHighlights) do
-				pcall(function() hl:Destroy() end)
-			end
+			for _, hl in ipairs(itemHighlights) do pcall(function() hl:Destroy() end) end
 			itemHighlights = {}
 			itemsOn = false
 			itemStatus.Text = "OFF"
-			itemStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-			itemBtnGroup.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+			itemStatus.TextColor3 = currentTheme.statusOff
+			itemBtnGroup.BackgroundColor3 = currentTheme.btnBg
 			infoLabel.Text = ""
-			addLog("Items highlight OFF")
+			addLog("Items OFF")
 			_G.N1V1LON.showMsg("Items highlight OFF")
 		else
 			local count = 0
@@ -568,7 +630,6 @@ local ok, err = pcall(function()
 			for _, obj in ipairs(workspace:GetDescendants()) do
 				if inList(obj.Name, itemNames) then
 					local hl = Instance.new("Highlight")
-					hl.Name = "N1V1LON_Item"
 					hl.FillColor = Color3.fromRGB(50, 150, 255)
 					hl.FillTransparency = 0.4
 					hl.OutlineColor = Color3.fromRGB(255, 255, 100)
@@ -577,36 +638,23 @@ local ok, err = pcall(function()
 					hl.Adornee = obj
 					table.insert(itemHighlights, hl)
 					count = count + 1
-					if #samples < 5 then table.insert(samples, obj.Name) end
+					if #samples < 3 then table.insert(samples, obj.Name) end
 				end
 			end
 			itemsOn = true
 			itemStatus.Text = "ON"
-			itemStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			itemBtnGroup.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-			if #samples > 0 then
-				infoLabel.Text = "Items: " .. count .. " (" .. table.concat(samples, ", ") .. ")"
-				addLog("Items ON — " .. count)
-				_G.N1V1LON.showMsg("Items ON — " .. count .. " (" .. table.concat(samples, ", ") .. ")")
-			else
-				infoLabel.Text = "Items: " .. count
-				addLog("Items ON — " .. count)
-				_G.N1V1LON.showMsg("Items ON — " .. count)
-			end
+			itemStatus.TextColor3 = currentTheme.statusOn
+			itemBtnGroup.BackgroundColor3 = currentTheme.btnActiveBg
+			local infoText = "Items: " .. count
+			if #samples > 0 then infoText = infoText .. " (" .. table.concat(samples, ", ") .. ")" end
+			infoLabel.Text = infoText
+			addLog("Items ON — " .. count)
+			_G.N1V1LON.showMsg("Items ON — " .. count)
 		end
 	end
 
-	npcBtnGroup.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			toggleNPC()
-		end
-	end)
-
-	itemBtnGroup.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			toggleItems()
-		end
-	end)
+	npcBtnGroup.MouseButton1Click:Connect(toggleNPC)
+	itemBtnGroup.MouseButton1Click:Connect(toggleItems)
 
 	-- Aimbot Widget
 	local aimOn = false
@@ -618,49 +666,50 @@ local ok, err = pcall(function()
 	local sphereConn = nil
 
 	local aimbotFrame = Instance.new("Frame")
-	aimbotFrame.Size = UDim2.new(1, 0, 0, 106)
-	aimbotFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	aimbotFrame.Size = UDim2.new(1, 0, 0, 100)
+	aimbotFrame.BackgroundColor3 = currentTheme.widgetBg
 	aimbotFrame.BorderSizePixel = 0
 	aimbotFrame.Parent = playerTab
 	Instance.new("UICorner", aimbotFrame).CornerRadius = UDim.new(0, 6)
+	themeRegister(aimbotFrame, "BackgroundColor3", "widgetBg")
 
 	local aimbotTitle = Instance.new("TextLabel")
-	aimbotTitle.Size = UDim2.new(0, 120, 0, 20)
-	aimbotTitle.Position = UDim2.new(0, 8, 0, 4)
+	aimbotTitle.Size = UDim2.new(0, 100, 0, 18)
+	aimbotTitle.Position = UDim2.new(0, 8, 0, 3)
 	aimbotTitle.BackgroundTransparency = 1
-	aimbotTitle.Text = "  Aimbot"
-	aimbotTitle.TextColor3 = Color3.fromRGB(200, 200, 220)
-	aimbotTitle.TextSize = 13
+	aimbotTitle.Text = "Aimbot"
+	aimbotTitle.TextColor3 = currentTheme.textMain
+	aimbotTitle.TextSize = 12
 	aimbotTitle.TextXAlignment = Enum.TextXAlignment.Left
 	aimbotTitle.Font = Enum.Font.Gotham
 	aimbotTitle.Parent = aimbotFrame
+	themeRegister(aimbotTitle, "TextColor3", "textMain")
 
 	local aimbotStatus = Instance.new("TextButton")
-	aimbotStatus.Size = UDim2.new(0, 50, 0, 20)
-	aimbotStatus.Position = UDim2.new(1, -55, 0, 4)
+	aimbotStatus.Size = UDim2.new(0, 44, 0, 18)
+	aimbotStatus.Position = UDim2.new(1, -50, 0, 3)
 	aimbotStatus.BackgroundTransparency = 1
 	aimbotStatus.Text = "OFF"
-	aimbotStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-	aimbotStatus.TextSize = 12
+	aimbotStatus.TextColor3 = currentTheme.statusOff
+	aimbotStatus.TextSize = 11
 	aimbotStatus.Font = Enum.Font.GothamBold
 	aimbotStatus.Parent = aimbotFrame
 
-	-- Slider function
 	local function makeSlider(parent, yPos, label, getter, setter, maxVal, barColor, labelColor)
 		local lbl = Instance.new("TextLabel")
-		lbl.Size = UDim2.new(0, 130, 0, 14)
+		lbl.Size = UDim2.new(0, 120, 0, 12)
 		lbl.Position = UDim2.new(0, 8, 0, yPos)
 		lbl.BackgroundTransparency = 1
 		lbl.Text = label .. tostring(getter())
 		lbl.TextColor3 = labelColor
-		lbl.TextSize = 11
+		lbl.TextSize = 10
 		lbl.TextXAlignment = Enum.TextXAlignment.Left
 		lbl.Font = Enum.Font.Gotham
 		lbl.Parent = parent
 
 		local bar = Instance.new("TextButton")
-		bar.Size = UDim2.new(1, -20, 0, 8)
-		bar.Position = UDim2.new(0, 10, 0, yPos + 16)
+		bar.Size = UDim2.new(1, -20, 0, 7)
+		bar.Position = UDim2.new(0, 10, 0, yPos + 13)
 		bar.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
 		bar.BorderSizePixel = 0
 		bar.Text = ""
@@ -685,21 +734,18 @@ local ok, err = pcall(function()
 				if maxVal == 500 then val = math.max(5, val) end
 				setter(val)
 				lbl.Text = label .. tostring(getter())
-				fill.Size = UDim2.new(frac, 0, 1, 0)
+				fill.Size = UDim2.new(math.clamp(getter() / maxVal, 0, 1), 0, 1, 0)
 			end
 		end)
-
-		return lbl, bar, fill
 	end
 
-	makeSlider(aimbotFrame, 24, "Zone: ", function() return zoneRadius end, function(v) zoneRadius = v end, 500, Color3.fromRGB(60, 200, 120), Color3.fromRGB(160, 200, 160))
-	makeSlider(aimbotFrame, 50, "Hits: ", function() return hitCount end, function(v) hitCount = v end, 50, Color3.fromRGB(200, 200, 100), Color3.fromRGB(200, 200, 100))
-	makeSlider(aimbotFrame, 76, "Damage: ", function() return damagePower end, function(v) damagePower = v end, 100, Color3.fromRGB(200, 100, 100), Color3.fromRGB(200, 120, 120))
+	makeSlider(aimbotFrame, 22, "Zone: ", function() return zoneRadius end, function(v) zoneRadius = v end, 500, Color3.fromRGB(60, 200, 120), Color3.fromRGB(160, 200, 160))
+	makeSlider(aimbotFrame, 46, "Hits: ", function() return hitCount end, function(v) hitCount = v end, 50, Color3.fromRGB(200, 200, 100), Color3.fromRGB(200, 200, 100))
+	makeSlider(aimbotFrame, 70, "Damage: ", function() return damagePower end, function(v) damagePower = v end, 100, Color3.fromRGB(200, 100, 100), Color3.fromRGB(200, 120, 120))
 
 	local function createSphere()
 		if spherePart then pcall(function() spherePart:Destroy() end) end
 		spherePart = Instance.new("Part")
-		spherePart.Name = "N1V1LON_Sphere"
 		spherePart.Shape = Enum.PartType.Ball
 		spherePart.Size = Vector3.new(zoneRadius * 2, zoneRadius * 2, zoneRadius * 2)
 		spherePart.Anchored = true
@@ -708,7 +754,6 @@ local ok, err = pcall(function()
 		spherePart.Color = Color3.fromRGB(100, 200, 255)
 		spherePart.Material = Enum.Material.Neon
 		spherePart.Parent = workspace
-
 		if sphereConn then sphereConn:Disconnect() end
 		sphereConn = RunService.RenderStepped:Connect(function()
 			if not aimOn or not spherePart then
@@ -737,9 +782,7 @@ local ok, err = pcall(function()
 		if parent:IsA("BasePart") then return parent.Position end
 		if parent.PrimaryPart then return parent.PrimaryPart.Position end
 		for _, child in ipairs(parent:GetChildren()) do
-			if child:IsA("BasePart") then
-				return child.Position
-			end
+			if child:IsA("BasePart") then return child.Position end
 		end
 		return nil
 	end
@@ -750,7 +793,6 @@ local ok, err = pcall(function()
 		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 		if not root then return end
 		local pos = root.Position
-
 		local targets = {}
 		for _, obj in ipairs(workspace:GetDescendants()) do
 			if not obj:IsA("Model") then continue end
@@ -762,16 +804,13 @@ local ok, err = pcall(function()
 				table.insert(targets, hum)
 			end
 		end
-
 		_G.N1V1LON.showMsg("Aimbot: " .. #targets .. " NPC, " .. damagePower .. " dmg x" .. hitCount)
-		addLog("Aimbot: " .. #targets .. " targets, " .. damagePower .. " dmg x" .. hitCount)
+		addLog("Aimbot: " .. #targets .. " targets")
 		for h = 1, hitCount do
 			for _, nhum in ipairs(targets) do
 				if nhum.Health > 0 then
 					nhum.Health = nhum.Health - damagePower
-					if nhum.Health <= 0 then
-						pcall(function() nhum:BreakJoints() end)
-					end
+					if nhum.Health <= 0 then pcall(function() nhum:BreakJoints() end) end
 				end
 			end
 		end
@@ -781,7 +820,7 @@ local ok, err = pcall(function()
 		aimOn = not aimOn
 		if aimOn then
 			aimbotStatus.Text = "ON"
-			aimbotStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
+			aimbotStatus.TextColor3 = currentTheme.statusOn
 			createSphere()
 			addLog("Aimbot ON — zone " .. zoneRadius)
 			_G.N1V1LON.showMsg("Aimbot ON — zone " .. zoneRadius)
@@ -794,7 +833,7 @@ local ok, err = pcall(function()
 			end)
 		else
 			aimbotStatus.Text = "OFF"
-			aimbotStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
+			aimbotStatus.TextColor3 = currentTheme.statusOff
 			destroySphere()
 			addLog("Aimbot OFF")
 			_G.N1V1LON.showMsg("Aimbot OFF")
@@ -804,28 +843,30 @@ local ok, err = pcall(function()
 
 	-- ==================== SERVER TAB ====================
 
-	-- Category Label
 	local teleportLabel = Instance.new("TextLabel")
-	teleportLabel.Size = UDim2.new(1, -8, 0, 20)
-	teleportLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+	teleportLabel.Size = UDim2.new(1, 0, 0, 18)
+	teleportLabel.BackgroundColor3 = currentTheme.btnBg
 	teleportLabel.BorderSizePixel = 0
-	teleportLabel.Text = "   Teleport"
-	teleportLabel.TextColor3 = Color3.fromRGB(150, 150, 200)
-	teleportLabel.TextSize = 12
+	teleportLabel.Text = "  Teleport"
+	teleportLabel.TextColor3 = currentTheme.textDim
+	teleportLabel.TextSize = 11
 	teleportLabel.TextXAlignment = Enum.TextXAlignment.Left
 	teleportLabel.Font = Enum.Font.GothamBold
 	teleportLabel.Parent = serverTab
 	Instance.new("UICorner", teleportLabel).CornerRadius = UDim.new(0, 4)
+	themeRegister(teleportLabel, "BackgroundColor3", "btnBg")
+	themeRegister(teleportLabel, "TextColor3", "textDim")
 
 	-- Checkpoints Widget
 	local checkpoints = {}
 
 	local cpFrame = Instance.new("Frame")
-	cpFrame.Size = UDim2.new(1, 0, 0, 120)
-	cpFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	cpFrame.Size = UDim2.new(1, 0, 0, 110)
+	cpFrame.BackgroundColor3 = currentTheme.widgetBg
 	cpFrame.BorderSizePixel = 0
 	cpFrame.Parent = serverTab
 	Instance.new("UICorner", cpFrame).CornerRadius = UDim.new(0, 6)
+	themeRegister(cpFrame, "BackgroundColor3", "widgetBg")
 
 	local cpHeader = Instance.new("Frame")
 	cpHeader.Size = UDim2.new(1, 0, 0, 20)
@@ -833,27 +874,30 @@ local ok, err = pcall(function()
 	cpHeader.Parent = cpFrame
 
 	local cpLabel = Instance.new("TextLabel")
-	cpLabel.Size = UDim2.new(0, 140, 1, 0)
+	cpLabel.Size = UDim2.new(0, 120, 1, 0)
 	cpLabel.Position = UDim2.new(0, 8, 0, 0)
 	cpLabel.BackgroundTransparency = 1
-	cpLabel.Text = "  Checkpoints"
-	cpLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
-	cpLabel.TextSize = 13
+	cpLabel.Text = "Checkpoints"
+	cpLabel.TextColor3 = currentTheme.textMain
+	cpLabel.TextSize = 12
 	cpLabel.TextXAlignment = Enum.TextXAlignment.Left
 	cpLabel.Font = Enum.Font.Gotham
 	cpLabel.Parent = cpHeader
+	themeRegister(cpLabel, "TextColor3", "textMain")
 
 	local cpAddBtn = Instance.new("TextButton")
-	cpAddBtn.Size = UDim2.new(0, 20, 0, 20)
-	cpAddBtn.Position = UDim2.new(1, -26, 0, 0)
-	cpAddBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+	cpAddBtn.Size = UDim2.new(0, 18, 0, 18)
+	cpAddBtn.Position = UDim2.new(1, -24, 0, 1)
+	cpAddBtn.BackgroundColor3 = currentTheme.btnBg
 	cpAddBtn.BorderSizePixel = 0
 	cpAddBtn.Text = "+"
-	cpAddBtn.TextColor3 = Color3.fromRGB(160, 200, 160)
-	cpAddBtn.TextSize = 14
+	cpAddBtn.TextColor3 = currentTheme.statusOn
+	cpAddBtn.TextSize = 13
 	cpAddBtn.Font = Enum.Font.GothamBold
 	cpAddBtn.Parent = cpHeader
 	Instance.new("UICorner", cpAddBtn).CornerRadius = UDim.new(0, 3)
+	themeRegister(cpAddBtn, "BackgroundColor3", "btnBg")
+	themeRegister(cpAddBtn, "TextColor3", "statusOn")
 
 	local cpList = Instance.new("ScrollingFrame")
 	cpList.Size = UDim2.new(1, -8, 1, -24)
@@ -864,7 +908,6 @@ local ok, err = pcall(function()
 	cpList.CanvasSize = UDim2.new(0, 0, 0, 0)
 	cpList.Parent = cpFrame
 	local cpLayout = Instance.new("UIListLayout")
-	cpLayout.FillDirection = Enum.FillDirection.Vertical
 	cpLayout.Padding = UDim.new(0, 2)
 	cpLayout.Parent = cpList
 
@@ -877,12 +920,12 @@ local ok, err = pcall(function()
 		local id = #checkpoints + 1
 
 		local row = Instance.new("TextButton")
-		row.Size = UDim2.new(1, -6, 0, 22)
-		row.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+		row.Size = UDim2.new(1, -4, 0, 20)
+		row.BackgroundColor3 = currentTheme.btnBg
 		row.BorderSizePixel = 0
-		row.Text = "  CP " .. tostring(id) .. "  (" .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z) .. ")"
-		row.TextColor3 = Color3.fromRGB(200, 200, 220)
-		row.TextSize = 11
+		row.Text = "  CP " .. id .. "  (" .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z) .. ")"
+		row.TextColor3 = currentTheme.textMain
+		row.TextSize = 10
 		row.Font = Enum.Font.Gotham
 		row.TextXAlignment = Enum.TextXAlignment.Left
 		row.Parent = cpList
@@ -921,311 +964,298 @@ local ok, err = pcall(function()
 			end
 		end)
 
-		addLog("CP saved #" .. id .. " at " .. math.floor(pos.X) .. "," .. math.floor(pos.Y) .. "," .. math.floor(pos.Z))
+		addLog("CP #" .. id .. " saved")
 		_G.N1V1LON.showMsg("CP saved #" .. id)
 	end
 
-	cpAddBtn.MouseButton1Click:Connect(function()
-		addCP()
-	end)
+	cpAddBtn.MouseButton1Click:Connect(addCP)
 
 	-- ==================== SETTINGS TAB ====================
 
-	-- Language Setting
+	-- Language
 	local langFrame = Instance.new("Frame")
-	langFrame.Size = UDim2.new(1, 0, 0, 50)
-	langFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	langFrame.Size = UDim2.new(1, 0, 0, 44)
+	langFrame.BackgroundColor3 = currentTheme.widgetBg
 	langFrame.BorderSizePixel = 0
 	langFrame.Parent = settingsTab
 	Instance.new("UICorner", langFrame).CornerRadius = UDim.new(0, 6)
+	themeRegister(langFrame, "BackgroundColor3", "widgetBg")
 
 	local langLabel = Instance.new("TextLabel")
-	langLabel.Size = UDim2.new(1, -16, 0, 14)
-	langLabel.Position = UDim2.new(0, 8, 0, 6)
+	langLabel.Size = UDim2.new(1, -12, 0, 14)
+	langLabel.Position = UDim2.new(0, 8, 0, 4)
 	langLabel.BackgroundTransparency = 1
 	langLabel.Text = "Язык / Language"
-	langLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
-	langLabel.TextSize = 12
+	langLabel.TextColor3 = currentTheme.textMain
+	langLabel.TextSize = 11
 	langLabel.TextXAlignment = Enum.TextXAlignment.Left
 	langLabel.Font = Enum.Font.Gotham
 	langLabel.Parent = langFrame
+	themeRegister(langLabel, "TextColor3", "textMain")
 
 	local langRuBtn = Instance.new("TextButton")
-	langRuBtn.Size = UDim2.new(0.5, -6, 0, 24)
-	langRuBtn.Position = UDim2.new(0, 8, 0, 22)
-	langRuBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+	langRuBtn.Size = UDim2.new(0.5, -6, 0, 20)
+	langRuBtn.Position = UDim2.new(0, 8, 0, 20)
 	langRuBtn.BorderSizePixel = 2
-	langRuBtn.BorderColor3 = Color3.fromRGB(100, 200, 255)
-	langRuBtn.Text = "Русский ✓"
-	langRuBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	langRuBtn.TextSize = 12
+	langRuBtn.Text = "Русский"
+	langRuBtn.TextColor3 = currentTheme.textMain
+	langRuBtn.TextSize = 11
 	langRuBtn.Font = Enum.Font.Gotham
 	langRuBtn.Parent = langFrame
 	Instance.new("UICorner", langRuBtn).CornerRadius = UDim.new(0, 4)
 
 	local langEnBtn = Instance.new("TextButton")
-	langEnBtn.Size = UDim2.new(0.5, -6, 0, 24)
-	langEnBtn.Position = UDim2.new(0.5, 2, 0, 22)
-	langEnBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+	langEnBtn.Size = UDim2.new(0.5, -6, 0, 20)
+	langEnBtn.Position = UDim2.new(0.5, 2, 0, 20)
 	langEnBtn.BorderSizePixel = 2
-	langEnBtn.BorderColor3 = Color3.fromRGB(45, 45, 60)
 	langEnBtn.Text = "English"
-	langEnBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	langEnBtn.TextSize = 12
+	langEnBtn.TextColor3 = currentTheme.textMain
+	langEnBtn.TextSize = 11
 	langEnBtn.Font = Enum.Font.Gotham
 	langEnBtn.Parent = langFrame
 	Instance.new("UICorner", langEnBtn).CornerRadius = UDim.new(0, 4)
 
+	local function updateLangBtns()
+		if settings.language == "ru" then
+			langRuBtn.BackgroundColor3 = currentTheme.btnActiveBg
+			langRuBtn.BorderColor3 = currentTheme.accentBlue
+			langRuBtn.Text = "Русский ✓"
+			langEnBtn.BackgroundColor3 = currentTheme.btnBg
+			langEnBtn.BorderColor3 = currentTheme.btnBg
+			langEnBtn.Text = "English"
+		else
+			langEnBtn.BackgroundColor3 = currentTheme.btnActiveBg
+			langEnBtn.BorderColor3 = currentTheme.accentBlue
+			langEnBtn.Text = "English ✓"
+			langRuBtn.BackgroundColor3 = currentTheme.btnBg
+			langRuBtn.BorderColor3 = currentTheme.btnBg
+			langRuBtn.Text = "Русский"
+		end
+	end
+	updateLangBtns()
+
 	langRuBtn.MouseButton1Click:Connect(function()
-		langRuBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-		langRuBtn.BorderColor3 = Color3.fromRGB(100, 200, 255)
-		langRuBtn.Text = "Русский ✓"
-		langEnBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-		langEnBtn.BorderColor3 = Color3.fromRGB(45, 45, 60)
-		langEnBtn.Text = "English"
+		settings.language = "ru"
+		updateLangBtns()
+		saveSettings()
 		addLog("Language: Русский")
-		_G.N1V1LON.showMsg("Language set to: Русский")
+		_G.N1V1LON.showMsg("Язык: Русский")
 	end)
 
 	langEnBtn.MouseButton1Click:Connect(function()
-		langEnBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-		langEnBtn.BorderColor3 = Color3.fromRGB(100, 200, 255)
-		langEnBtn.Text = "English ✓"
-		langRuBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-		langRuBtn.BorderColor3 = Color3.fromRGB(45, 45, 60)
-		langRuBtn.Text = "Русский"
+		settings.language = "en"
+		updateLangBtns()
+		saveSettings()
 		addLog("Language: English")
-		_G.N1V1LON.showMsg("Language set to: English")
+		_G.N1V1LON.showMsg("Language: English")
 	end)
 
-	-- Theme Setting
+	-- Theme
 	local themeFrame = Instance.new("Frame")
-	themeFrame.Size = UDim2.new(1, 0, 0, 50)
-	themeFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	themeFrame.Size = UDim2.new(1, 0, 0, 44)
+	themeFrame.BackgroundColor3 = currentTheme.widgetBg
 	themeFrame.BorderSizePixel = 0
 	themeFrame.Parent = settingsTab
 	Instance.new("UICorner", themeFrame).CornerRadius = UDim.new(0, 6)
+	themeRegister(themeFrame, "BackgroundColor3", "widgetBg")
 
 	local themeLabel = Instance.new("TextLabel")
-	themeLabel.Size = UDim2.new(1, -16, 0, 14)
-	themeLabel.Position = UDim2.new(0, 8, 0, 6)
+	themeLabel.Size = UDim2.new(1, -12, 0, 14)
+	themeLabel.Position = UDim2.new(0, 8, 0, 4)
 	themeLabel.BackgroundTransparency = 1
 	themeLabel.Text = "Тема оформления"
-	themeLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
-	themeLabel.TextSize = 12
+	themeLabel.TextColor3 = currentTheme.textMain
+	themeLabel.TextSize = 11
 	themeLabel.TextXAlignment = Enum.TextXAlignment.Left
 	themeLabel.Font = Enum.Font.Gotham
 	themeLabel.Parent = themeFrame
+	themeRegister(themeLabel, "TextColor3", "textMain")
 
 	local themeDarkBtn = Instance.new("TextButton")
-	themeDarkBtn.Size = UDim2.new(0.5, -6, 0, 24)
-	themeDarkBtn.Position = UDim2.new(0, 8, 0, 22)
-	themeDarkBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+	themeDarkBtn.Size = UDim2.new(0.5, -6, 0, 20)
+	themeDarkBtn.Position = UDim2.new(0, 8, 0, 20)
 	themeDarkBtn.BorderSizePixel = 2
-	themeDarkBtn.BorderColor3 = Color3.fromRGB(100, 200, 255)
-	themeDarkBtn.Text = "Тёмная ✓"
-	themeDarkBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	themeDarkBtn.TextSize = 12
+	themeDarkBtn.Text = "Тёмная"
+	themeDarkBtn.TextColor3 = currentTheme.textMain
+	themeDarkBtn.TextSize = 11
 	themeDarkBtn.Font = Enum.Font.Gotham
 	themeDarkBtn.Parent = themeFrame
 	Instance.new("UICorner", themeDarkBtn).CornerRadius = UDim.new(0, 4)
 
 	local themeLightBtn = Instance.new("TextButton")
-	themeLightBtn.Size = UDim2.new(0.5, -6, 0, 24)
-	themeLightBtn.Position = UDim2.new(0.5, 2, 0, 22)
-	themeLightBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+	themeLightBtn.Size = UDim2.new(0.5, -6, 0, 20)
+	themeLightBtn.Position = UDim2.new(0.5, 2, 0, 20)
 	themeLightBtn.BorderSizePixel = 2
-	themeLightBtn.BorderColor3 = Color3.fromRGB(45, 45, 60)
 	themeLightBtn.Text = "Светлая"
-	themeLightBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	themeLightBtn.TextSize = 12
+	themeLightBtn.TextColor3 = currentTheme.textMain
+	themeLightBtn.TextSize = 11
 	themeLightBtn.Font = Enum.Font.Gotham
 	themeLightBtn.Parent = themeFrame
 	Instance.new("UICorner", themeLightBtn).CornerRadius = UDim.new(0, 4)
 
-	themeDarkBtn.MouseButton1Click:Connect(function()
-		themeDarkBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-		themeDarkBtn.BorderColor3 = Color3.fromRGB(100, 200, 255)
+	local function applyTheme(themeName)
+		settings.theme = themeName
+		currentTheme = themes[themeName] or themes.dark
+		themeApply()
+		-- Update status colors for infJump, aimbot, highlights
+		if infJumpOn then infJumpStatus.TextColor3 = currentTheme.statusOn else infJumpStatus.TextColor3 = currentTheme.statusOff end
+		if npcOn then npcStatus.TextColor3 = currentTheme.statusOn; npcBtnGroup.BackgroundColor3 = currentTheme.btnActiveBg
+		else npcStatus.TextColor3 = currentTheme.statusOff; npcBtnGroup.BackgroundColor3 = currentTheme.btnBg end
+		if itemsOn then itemStatus.TextColor3 = currentTheme.statusOn; itemBtnGroup.BackgroundColor3 = currentTheme.btnActiveBg
+		else itemStatus.TextColor3 = currentTheme.statusOff; itemBtnGroup.BackgroundColor3 = currentTheme.btnBg end
+		if aimOn then aimbotStatus.TextColor3 = currentTheme.statusOn else aimbotStatus.TextColor3 = currentTheme.statusOff end
+		-- Tab highlight
+		switchTab(playerTab.Visible and "player" or serverTab.Visible and "server" or "settings")
+		-- Theme btns
+		if settings.theme == "dark" then
+			themeDarkBtn.BackgroundColor3 = currentTheme.btnActiveBg
+			themeDarkBtn.BorderColor3 = currentTheme.accentBlue
+			themeDarkBtn.Text = "Тёмная ✓"
+			themeLightBtn.BackgroundColor3 = currentTheme.btnBg
+			themeLightBtn.BorderColor3 = currentTheme.btnBg
+			themeLightBtn.Text = "Светлая"
+		else
+			themeLightBtn.BackgroundColor3 = currentTheme.btnActiveBg
+			themeLightBtn.BorderColor3 = currentTheme.accentBlue
+			themeLightBtn.Text = "Светлая ✓"
+			themeDarkBtn.BackgroundColor3 = currentTheme.btnBg
+			themeDarkBtn.BorderColor3 = currentTheme.btnBg
+			themeDarkBtn.Text = "Тёмная"
+		end
+		themeLabel.TextColor3 = currentTheme.textMain
+		langLabel.TextColor3 = currentTheme.textMain
+	end
+
+	-- Initial theme btn state
+	if settings.theme == "dark" then
+		themeDarkBtn.BackgroundColor3 = currentTheme.btnActiveBg
+		themeDarkBtn.BorderColor3 = currentTheme.accentBlue
 		themeDarkBtn.Text = "Тёмная ✓"
-		themeLightBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-		themeLightBtn.BorderColor3 = Color3.fromRGB(45, 45, 60)
-		themeLightBtn.Text = "Светлая"
+		themeLightBtn.BackgroundColor3 = currentTheme.btnBg
+		themeLightBtn.BorderColor3 = currentTheme.btnBg
+	else
+		themeLightBtn.BackgroundColor3 = currentTheme.btnActiveBg
+		themeLightBtn.BorderColor3 = currentTheme.accentBlue
+		themeLightBtn.Text = "Светлая ✓"
+		themeDarkBtn.BackgroundColor3 = currentTheme.btnBg
+		themeDarkBtn.BorderColor3 = currentTheme.btnBg
+	end
+
+	themeDarkBtn.MouseButton1Click:Connect(function()
+		applyTheme("dark")
+		saveSettings()
 		addLog("Theme: Тёмная")
-		_G.N1V1LON.showMsg("Theme set to: Тёмная")
+		_G.N1V1LON.showMsg("Тема: Тёмная")
 	end)
 
 	themeLightBtn.MouseButton1Click:Connect(function()
-		themeLightBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-		themeLightBtn.BorderColor3 = Color3.fromRGB(100, 200, 255)
-		themeLightBtn.Text = "Светлая ✓"
-		themeDarkBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-		themeDarkBtn.BorderColor3 = Color3.fromRGB(45, 45, 60)
-		themeDarkBtn.Text = "Тёмная"
+		applyTheme("light")
+		saveSettings()
 		addLog("Theme: Светлая")
-		_G.N1V1LON.showMsg("Theme set to: Светлая")
+		_G.N1V1LON.showMsg("Тема: Светлая")
 	end)
 
-	-- Version Info
+	-- Version
 	local versionFrame = Instance.new("Frame")
-	versionFrame.Size = UDim2.new(1, 0, 0, 40)
-	versionFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	versionFrame.Size = UDim2.new(1, 0, 0, 32)
+	versionFrame.BackgroundColor3 = currentTheme.widgetBg
 	versionFrame.BorderSizePixel = 0
 	versionFrame.Parent = settingsTab
 	Instance.new("UICorner", versionFrame).CornerRadius = UDim.new(0, 6)
+	themeRegister(versionFrame, "BackgroundColor3", "widgetBg")
 
 	local versionLabel = Instance.new("TextLabel")
-	versionLabel.Size = UDim2.new(1, -16, 0, 14)
-	versionLabel.Position = UDim2.new(0, 8, 0, 6)
+	versionLabel.Size = UDim2.new(1, -12, 0, 14)
+	versionLabel.Position = UDim2.new(0, 8, 0, 2)
 	versionLabel.BackgroundTransparency = 1
-	versionLabel.Text = "Версия: v26.2.1.0 Beta"
-	versionLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
-	versionLabel.TextSize = 12
+	versionLabel.Text = "v26.2.1.0 Beta"
+	versionLabel.TextColor3 = currentTheme.textMain
+	versionLabel.TextSize = 11
 	versionLabel.TextXAlignment = Enum.TextXAlignment.Left
 	versionLabel.Font = Enum.Font.Gotham
 	versionLabel.Parent = versionFrame
+	themeRegister(versionLabel, "TextColor3", "textMain")
 
 	local buildLabel = Instance.new("TextLabel")
-	buildLabel.Size = UDim2.new(1, -16, 0, 14)
-	buildLabel.Position = UDim2.new(0, 8, 0, 22)
+	buildLabel.Size = UDim2.new(1, -12, 0, 12)
+	buildLabel.Position = UDim2.new(0, 8, 0, 16)
 	buildLabel.BackgroundTransparency = 1
 	buildLabel.Text = "Build: beta (scripts_beta)"
-	buildLabel.TextColor3 = Color3.fromRGB(120, 120, 160)
-	buildLabel.TextSize = 10
+	buildLabel.TextColor3 = currentTheme.textDim
+	buildLabel.TextSize = 9
 	buildLabel.TextXAlignment = Enum.TextXAlignment.Left
 	buildLabel.Font = Enum.Font.Gotham
 	buildLabel.Parent = versionFrame
+	themeRegister(buildLabel, "TextColor3", "textDim")
 
 	-- ==================== LOG BUTTON ====================
 	logBtn.MouseButton1Click:Connect(function()
 		local dataLines = {}
 		table.insert(dataLines, "=== N1V1LON Debug Log ===")
 		table.insert(dataLines, "Version: v26.2.1.0 Beta")
-		table.insert(dataLines, "Build: beta (scripts_beta)")
 		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Game Info ---")
+		table.insert(dataLines, "--- Game ---")
 		local okG, gName = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name end)
 		table.insert(dataLines, "Game: " .. (okG and gName or "unknown"))
 		table.insert(dataLines, "PlaceId: " .. game.PlaceId)
-		table.insert(dataLines, "JobId: " .. game.JobId)
-		table.insert(dataLines, "CreatorId: " .. game.CreatorId)
 		table.insert(dataLines, "")
 		table.insert(dataLines, "--- Player ---")
-		table.insert(dataLines, "Name: " .. player.Name)
-		table.insert(dataLines, "UserId: " .. player.UserId)
-		table.insert(dataLines, "AccountAge: " .. player.AccountAge)
+		table.insert(dataLines, "Name: " .. player.Name .. " (" .. player.UserId .. ")")
 		local char = player.Character
 		if char then
 			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-			if root then table.insert(dataLines, "Position: " .. tostring(root.Position)) end
+			if root then table.insert(dataLines, "Pos: " .. tostring(root.Position)) end
 			local hum = char:FindFirstChildOfClass("Humanoid")
-			if hum then table.insert(dataLines, "Health: " .. hum.Health .. "/" .. hum.MaxHealth .. " WS:" .. hum.WalkSpeed) end
+			if hum then table.insert(dataLines, "HP: " .. math.floor(hum.Health) .. "/" .. hum.MaxHealth .. " WS:" .. hum.WalkSpeed) end
 		end
 		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Inventory ---")
-		local backpack = player:FindFirstChild("Backpack")
-		if backpack then
-			for _, item in ipairs(backpack:GetChildren()) do
-				table.insert(dataLines, "  [Backpack] " .. item.Name .. " (" .. item.ClassName .. ")")
-			end
-		end
-		if char then
-			for _, item in ipairs(char:GetChildren()) do
-				if item:IsA("Tool") or item:IsA("Accoutrement") or item:IsA("Accessory") then
-					table.insert(dataLines, "  [Char] " .. item.Name .. " (" .. item.ClassName .. ")")
-				end
-			end
-		end
-		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Nearby Parts (30 studs) ---")
-		if char then
-			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-			if root then
-				local pos = root.Position
-				local count = 0
-				for _, part in ipairs(workspace:GetDescendants()) do
-					if part:IsA("BasePart") and not part:IsA("Terrain") then
-						if (part.Position - pos).Magnitude < 30 then
-							count = count + 1
-							if count <= 50 then
-								table.insert(dataLines, "  " .. part.Name .. " (" .. part.ClassName .. ")")
-							end
-						end
-					end
-				end
-				table.insert(dataLines, "  Total nearby: " .. count)
-			end
-		end
-		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Runtime Logs ---")
-		for _, line in ipairs(_G.N1V1LON.logs) do
-			table.insert(dataLines, line)
-		end
+		table.insert(dataLines, "--- Logs ---")
+		for _, line in ipairs(_G.N1V1LON.logs) do table.insert(dataLines, line) end
 		table.insert(dataLines, "")
 		table.insert(dataLines, "--- Players ---")
-		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+		for _, p in ipairs(Players:GetPlayers()) do
 			local info = p.Name
 			local c = p.Character
-			if c then
-				local h = c:FindFirstChildOfClass("Humanoid")
-				if h then info = info .. " HP:" .. math.floor(h.Health) end
-			end
+			if c then local h = c:FindFirstChildOfClass("Humanoid"); if h then info = info .. " HP:" .. math.floor(h.Health) end end
 			table.insert(dataLines, "  " .. info)
 		end
-		table.insert(dataLines, "")
 		table.insert(dataLines, "=== End ===")
 
 		local fullText = table.concat(dataLines, "\n")
-		addLog("Log collected (" .. #dataLines .. " lines)")
-
 		local saved = false
 		local savePath = ""
 		pcall(function() makefolder("logsave") end)
-		for _, path in ipairs({ "logsave/N1V1LON_log.txt", "N1V1LON_log_save.txt", "log_save.txt", "logsave/log_save.txt" }) do
+		for _, path in ipairs({ "logsave/N1V1LON_log.txt", "N1V1LON_log_save.txt", "log_save.txt" }) do
 			if not saved then
-				local okW = pcall(function() writefile(path, fullText); saved = true; savePath = path end)
+				pcall(function() writefile(path, fullText); saved = true; savePath = path end)
 			end
 		end
 		if saved then
-			addLog("Saved to " .. savePath)
-			warn("N1V1LON: log saved to " .. savePath)
-			chatLocal("N1V1LON: log saved (" .. #dataLines .. " lines)", Color3.fromRGB(100, 255, 100))
-		else
-			warn("N1V1LON: writefile not available, log below")
-			chatLocal("N1V1LON: writefile not available, check console", Color3.fromRGB(255, 100, 100))
+			addLog("Log saved: " .. savePath)
+			chatLocal("Log saved (" .. #dataLines .. " lines)", Color3.fromRGB(100, 255, 100))
 		end
-		warn("=== N1V1LON LOG ===")
-		warn(fullText)
-		warn("=== END LOG ===")
+		warn("=== N1V1LON LOG ===\n" .. fullText .. "\n=== END ===")
 	end)
 
 	-- ==================== BETA SELF-UPDATE ====================
 	betaBtn.MouseButton1Click:Connect(function()
-		addLog("β self-update triggered")
-		warn("N1V1LON: β self-update...")
+		addLog("β self-update")
 		if gui then pcall(function() gui:Destroy() end) end
 		if _G.N1V1LON.cleanup then
-			for _, fn in ipairs(_G.N1V1LON.cleanup) do
-				pcall(fn)
-			end
+			for _, fn in ipairs(_G.N1V1LON.cleanup) do pcall(fn) end
 		end
 		task.wait(0.3)
-		local url = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/test_loading.lua"
 		local okS, script = pcall(function()
-			return game:HttpGet(url, true)
+			return game:HttpGet("https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/test_loading.lua", true)
 		end)
 		if okS and script then
-			local fn, errS = loadstring(script)
-			if fn then
-				_G.N1V1LON.cleanup = {}
-				task.spawn(fn)
-			end
+			local fn = loadstring(script)
+			if fn then _G.N1V1LON.cleanup = {}; task.spawn(fn) end
 		end
 	end)
 
-	addLog("Interface loaded successfully!")
-	print("[N1V1LON] Interface loaded successfully!")
+	addLog("Interface v2 loaded!")
+	print("[N1V1LON] Interface v2 loaded!")
 end)
 
-if not ok then
-	warn("N1V1LON error: " .. tostring(err))
-end
+if not ok then warn("N1V1LON error: " .. tostring(err)) end
