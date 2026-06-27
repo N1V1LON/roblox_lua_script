@@ -1,12 +1,20 @@
 -- N1V1LON test loader
 local baseUrl = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/scripts_beta/"
 
-local widgets = {
-	"widget_speed.lua",
-	"widget_infjump.lua",
-	"widget_checkpoints.lua",
-	"widget_highlights.lua",
-	"widget_aimbot.lua",
+local categories = {
+	{
+		name = "Teleport",
+		widgets = { "widget_checkpoints.lua" },
+	},
+	{
+		name = "Player",
+		widgets = {
+			"widget_speed.lua",
+			"widget_infjump.lua",
+			"widget_highlights.lua",
+			"widget_aimbot.lua",
+		},
+	},
 }
 
 local uis = game:GetService("UserInputService")
@@ -190,17 +198,32 @@ local ok, err = pcall(function()
 	container.Parent = menu
 	Instance.new("UIListLayout", container).Padding = UDim.new(0, 6)
 
-	for _, name in ipairs(widgets) do
-		local url = baseUrl .. name
-		local success, fn = pcall(function()
-			return loadstring(game:HttpGet(url, true))()
-		end)
-		if success and type(fn) == "function" then
-			pcall(fn, container, player, uis, rs)
-			addLog("Loaded: " .. name)
-		else
-			warn("N1V1LON: failed to load " .. name)
-			addLog("FAILED: " .. name)
+	for _, cat in ipairs(categories) do
+		local catLabel = Instance.new("TextLabel")
+		catLabel.Size = UDim2.new(1, -8, 0, 20)
+		catLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+		catLabel.BorderSizePixel = 0
+		catLabel.Text = "  " .. cat.name
+		catLabel.TextColor3 = Color3.fromRGB(150, 150, 200)
+		catLabel.TextSize = 12
+		catLabel.TextXAlignment = Enum.TextXAlignment.Left
+		catLabel.Font = Enum.Font.GothamBold
+		catLabel.Parent = container
+		Instance.new("UICorner", catLabel).CornerRadius = UDim.new(0, 4)
+		addLog("Category: " .. cat.name)
+
+		for _, name in ipairs(cat.widgets) do
+			local url = baseUrl .. name
+			local success, fn = pcall(function()
+				return loadstring(game:HttpGet(url, true))()
+			end)
+			if success and type(fn) == "function" then
+				pcall(fn, container, player, uis, rs)
+				addLog("Loaded: " .. name)
+			else
+				warn("N1V1LON: failed to load " .. name)
+				addLog("FAILED: " .. name)
+			end
 		end
 	end
 
