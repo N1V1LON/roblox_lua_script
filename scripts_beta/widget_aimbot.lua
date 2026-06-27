@@ -1,7 +1,7 @@
 return function(container, player, uis, rs)
 	warn("[N1V1LON DEBUG] Aimbot widget loaded")
 	local aimOn = false
-	local zoneRadius = 30
+	local zoneRadius = 50
 	local hitCount = 5
 	local aimConn = nil
 
@@ -113,6 +113,19 @@ return function(container, player, uis, rs)
 		end
 	end)
 
+	local function getNPCPos(parent)
+		local r = parent:FindFirstChild("HumanoidRootPart") or parent:FindFirstChild("Torso")
+		if r then return r.Position end
+		if parent:IsA("BasePart") then return parent.Position end
+		if parent.PrimaryPart then return parent.PrimaryPart.Position end
+		for _, child in ipairs(parent:GetChildren()) do
+			if child:IsA("BasePart") then
+				return child.Position
+			end
+		end
+		return nil
+	end
+
 	local function getNPCTargets()
 		local char = player.Character
 		if not char then return {} end
@@ -132,8 +145,8 @@ return function(container, player, uis, rs)
 			local parent = obj.Parent
 			if parent == char then continue end
 			if playerModels[parent] then continue end
-			local r = parent:FindFirstChild("HumanoidRootPart") or parent:FindFirstChild("Torso") or (parent:IsA("BasePart") and parent) or parent.PrimaryPart
-			if r and (r.Position - pos).Magnitude <= zoneRadius then
+			local npcPos = getNPCPos(parent)
+			if npcPos and (npcPos - pos).Magnitude <= zoneRadius then
 				table.insert(targets, obj)
 			end
 		end
@@ -142,11 +155,15 @@ return function(container, player, uis, rs)
 
 	local function doAimbot()
 		local targets = getNPCTargets()
+		warn("[N1V1LON DEBUG] Aimbot: целей найдено " .. #targets)
 		if #targets == 0 then return end
 		for h = 1, hitCount do
 			for _, nhum in ipairs(targets) do
 				if nhum.Health > 0 then
-					pcall(function() nhum:TakeDamage(15) end)
+					local ok = pcall(function() nhum:TakeDamage(15) end)
+					if not ok then
+						pcall(function() nhum:BreakJoints() end)
+					end
 				end
 			end
 		end
