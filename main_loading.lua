@@ -352,169 +352,18 @@ local ok, err = pcall(function()
 		end
 	end)
 
-	-- Auto Attack
-	local aaOn = false
-	local aaRange = 30
-	local aaZoneParts = {}
-	local aaAttackConn = nil
-	local aaUpdateConn = nil
-
-	local aaBtn = Instance.new("TextButton")
-	aaBtn.Size = UDim2.new(1, 0, 0, 32)
-	aaBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-	aaBtn.BorderSizePixel = 0
-	aaBtn.Text = "  Auto Attack"
-	aaBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	aaBtn.TextSize = 13
-	aaBtn.TextXAlignment = Enum.TextXAlignment.Left
-	aaBtn.Font = Enum.Font.Gotham
-	aaBtn.Parent = container
-	Instance.new("UICorner", aaBtn).CornerRadius = UDim.new(0, 6)
-
-	local aaStatus = Instance.new("TextLabel")
-	aaStatus.Size = UDim2.new(0, 50, 1, 0)
-	aaStatus.Position = UDim2.new(1, -55, 0, 0)
-	aaStatus.BackgroundTransparency = 1
-	aaStatus.Text = "OFF"
-	aaStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-	aaStatus.TextSize = 12
-	aaStatus.Font = Enum.Font.GothamBold
-	aaStatus.Parent = aaBtn
-
-	local aaRangeLbl = Instance.new("TextButton")
-	aaRangeLbl.Size = UDim2.new(0, 40, 1, 0)
-	aaRangeLbl.Position = UDim2.new(1, -100, 0, 0)
-	aaRangeLbl.BackgroundTransparency = 1
-	aaRangeLbl.Text = tostring(aaRange)
-	aaRangeLbl.TextColor3 = Color3.fromRGB(160, 200, 160)
-	aaRangeLbl.TextSize = 12
-	aaRangeLbl.Font = Enum.Font.GothamBold
-	aaRangeLbl.Parent = aaBtn
-
-	aaRangeLbl.MouseButton1Click:Connect(function()
-		aaRange = aaRange + 5
-		if aaRange > 100 then aaRange = 10 end
-		aaRangeLbl.Text = tostring(aaRange)
-		updateZone()
-	end)
-
-	local function clearZone()
-		for _, p in ipairs(aaZoneParts) do
-			pcall(function() p:Destroy() end)
-		end
-		aaZoneParts = {}
-	end
-
-	local function createZone()
-		clearZone()
-		for i = 1, 24 do
-			local angle = (i / 24) * math.pi * 2
-			local p = Instance.new("Part")
-			p.Size = Vector3.new(0.4, 0.1, 0.4)
-			p.Shape = Enum.PartType.Ball
-			p.Anchored = true
-			p.CanCollide = false
-			p.Transparency = 0.3
-			p.Color = Color3.fromRGB(255, 50, 50)
-			p.Material = Enum.Material.Neon
-			p.Parent = workspace
-			table.insert(aaZoneParts, p)
-		end
-	end
-
-	local function updateZone()
-		if not aaOn or #aaZoneParts == 0 then return end
-		local char = player.Character
-		if not char then return end
-		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-		if not root then return end
-		local posY = root.Position.Y - (root.Size.Y / 2) - 0.5
-		for i, p in ipairs(aaZoneParts) do
-			local angle = (i / 24) * math.pi * 2
-			p.Position = Vector3.new(math.cos(angle) * aaRange, posY, math.sin(angle) * aaRange)
-		end
-	end
-
-	local function aaAttack()
-		local char = player.Character
-		if not char then return end
-		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-		if not root then return end
-		local pos = root.Position
-
-		local playerChars = {}
-		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-			if p ~= player and p.Character then
-				playerChars[p.Character] = true
-			end
-		end
-
-		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-			if p ~= player then
-				local c = p.Character
-				if c then
-					local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-					local h = c:FindFirstChildOfClass("Humanoid")
-					if r and h and h.Health > 0 and (r.Position - pos).Magnitude < aaRange then
-						local ok = pcall(function() h:TakeDamage(5) end)
-						if not ok then pcall(function() h:BreakJoints() end) end
-					end
-				end
-			end
-		end
-
-		for _, part in ipairs(workspace:GetDescendants()) do
-			if part == char then continue end
-			local h = part:FindFirstChildOfClass("Humanoid")
-			if h and h.Health > 0 then
-				local r = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
-				if r and not playerChars[part] and (r.Position - pos).Magnitude < aaRange then
-					local ok = pcall(function() h:TakeDamage(5) end)
-					if not ok then pcall(function() h:BreakJoints() end) end
-				end
-			end
-		end
-	end
-
-	aaBtn.MouseButton1Click:Connect(function()
-		aaOn = not aaOn
-		if aaOn then
-			aaStatus.Text = "ON"
-			aaStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			createZone()
-			updateZone()
-			if aaUpdateConn then aaUpdateConn:Disconnect() end
-			aaUpdateConn = rs.RenderStepped:Connect(updateZone)
-			if aaAttackConn then aaAttackConn:Disconnect() end
-			aaAttackConn = uis.InputBegan:Connect(function(input, processed)
-				if processed then return end
-				if input.UserInputType == Enum.UserInputType.MouseButton1 then
-					aaAttack()
-				end
-			end)
-		else
-			aaStatus.Text = "OFF"
-			aaStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-			if aaAttackConn then aaAttackConn:Disconnect(); aaAttackConn = nil end
-			if aaUpdateConn then aaUpdateConn:Disconnect(); aaUpdateConn = nil end
-			clearZone()
-		end
-	end)
-
-	-- Aimbot + FOV + Triggerbot
+	-- Aimbot (on attack: speed boost + rapid AoE hits)
 	local aimOn = false
-	local fovRadius = 150
-	local fovCircle = nil
+	local aimRange = 30
+	local aimHits = 3
 	local aimConnML = nil
-	local trigConnML = nil
-	local holdConnML = nil
-	local drawingOk2 = pcall(function() return Drawing.new("Circle") end)
+	local aimOrigSpeed = nil
 
 	local aimBtn = Instance.new("TextButton")
 	aimBtn.Size = UDim2.new(1, 0, 0, 32)
 	aimBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	aimBtn.BorderSizePixel = 0
-	aimBtn.Text = "  Aimbot + FOV"
+	aimBtn.Text = "  Aimbot"
 	aimBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
 	aimBtn.TextSize = 13
 	aimBtn.TextXAlignment = Enum.TextXAlignment.Left
@@ -532,59 +381,82 @@ local ok, err = pcall(function()
 	aimStatus.Font = Enum.Font.GothamBold
 	aimStatus.Parent = aimBtn
 
-	local function getClosestTarget(fovPixels)
-		local mouse = player:GetMouse()
-		local mPos = Vector2.new(mouse.X, mouse.Y)
-		local best = nil
-		local bestDist = fovPixels or 9999
-		local cam = workspace.CurrentCamera
+	local aimRangeLbl = Instance.new("TextButton")
+	aimRangeLbl.Size = UDim2.new(0, 50, 1, 0)
+	aimRangeLbl.Position = UDim2.new(1, -112, 0, 0)
+	aimRangeLbl.BackgroundTransparency = 1
+	aimRangeLbl.Text = tostring(aimRange)
+	aimRangeLbl.TextColor3 = Color3.fromRGB(160, 200, 160)
+	aimRangeLbl.TextSize = 12
+	aimRangeLbl.Font = Enum.Font.GothamBold
+	aimRangeLbl.Parent = aimBtn
+	aimRangeLbl.MouseButton1Click:Connect(function()
+		aimRange = aimRange + 10
+		if aimRange > 500 then aimRange = 30 end
+		aimRangeLbl.Text = tostring(aimRange)
+	end)
+
+	local aimHitsLbl = Instance.new("TextButton")
+	aimHitsLbl.Size = UDim2.new(0, 32, 1, 0)
+	aimHitsLbl.Position = UDim2.new(1, -151, 0, 0)
+	aimHitsLbl.BackgroundTransparency = 1
+	aimHitsLbl.Text = tostring(aimHits)
+	aimHitsLbl.TextColor3 = Color3.fromRGB(200, 200, 100)
+	aimHitsLbl.TextSize = 12
+	aimHitsLbl.Font = Enum.Font.GothamBold
+	aimHitsLbl.Parent = aimBtn
+	aimHitsLbl.MouseButton1Click:Connect(function()
+		aimHits = aimHits + 1
+		if aimHits > 100 then aimHits = 1 end
+		aimHitsLbl.Text = tostring(aimHits)
+	end)
+
+	local function doAimbot()
+		local char = player.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+		if not root then return end
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if not hum then return end
+		local pos = root.Position
+
+		local playerChars = {}
 		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-			if p == player then continue end
-			local c = p.Character
-			if not c then continue end
-			local root = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-			local hum = c:FindFirstChildOfClass("Humanoid")
-			if not root or not hum or hum.Health <= 0 then continue end
-			local sp, vis = cam:WorldToViewportPoint(root.Position)
-			if vis then
-				local dist = (Vector2.new(sp.X, sp.Y) - mPos).Magnitude
-				if dist < bestDist then bestDist = dist; best = {char = c, root = root, hum = hum} end
+			if p ~= player and p.Character then playerChars[p.Character] = true end
+		end
+
+		-- speed boost
+		local oldWS = hum.WalkSpeed
+		hum.WalkSpeed = oldWS * 2.5
+
+		-- rapid AoE hits
+		for hit = 1, aimHits do
+			for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+				if p == player then continue end
+				local c = p.Character
+				if c then
+					local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
+					local h = c:FindFirstChildOfClass("Humanoid")
+					if r and h and h.Health > 0 and (r.Position - pos).Magnitude < aimRange then
+						pcall(function() h:TakeDamage(15) end)
+					end
+				end
 			end
+			for _, part in ipairs(workspace:GetDescendants()) do
+				if part == char then continue end
+				local h = part:FindFirstChildOfClass("Humanoid")
+				if h and h.Health > 0 then
+					local r = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
+					if r and not playerChars[part] and (r.Position - pos).Magnitude < aimRange then
+						pcall(function() h:TakeDamage(15) end)
+					end
+				end
+			end
+			task.wait(0.08)
 		end
-		return best
-	end
 
-	local function createFOV()
-		if not drawingOk2 then return end
-		if fovCircle then pcall(function() fovCircle:Remove() end) end
-		fovCircle = Drawing.new("Circle")
-		fovCircle.Visible = false
-		fovCircle.Radius = fovRadius
-		fovCircle.Thickness = 1
-		fovCircle.NumSides = 64
-		fovCircle.Color = Color3.fromRGB(255, 255, 255)
-		fovCircle.Transparency = 0.7
-		fovCircle.Position = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
-	end
-
-	local function updateFOV()
-		if not fovCircle then return end
-		local cam = workspace.CurrentCamera
-		fovCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-		fovCircle.Radius = fovRadius
-	end
-
-	local function aimAtTarget(target)
-		if not target then return end
-		local mouse = player:GetMouse()
-		local head = target.char:FindFirstChild("Head")
-		if head then
-			pcall(function() mouse.TargetFilter = target.char end)
-			pcall(function() mouse.Hit = head.CFrame end)
-			pcall(function() mouse.Target = head end)
-		else
-			pcall(function() mouse.Hit = target.root.CFrame + Vector3.new(0, 2, 0) end)
-		end
+		-- restore speed
+		hum.WalkSpeed = oldWS
 	end
 
 	aimBtn.MouseButton1Click:Connect(function()
@@ -592,169 +464,17 @@ local ok, err = pcall(function()
 		if aimOn then
 			aimStatus.Text = "ON"
 			aimStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			createFOV()
 			if aimConnML then aimConnML:Disconnect() end
-			aimConnML = rs.RenderStepped:Connect(function()
-				if not aimOn then return end
-				local target = getClosestTarget(fovRadius)
-				if target then aimAtTarget(target) end
-				if fovCircle then fovCircle.Visible = aimOn; updateFOV() end
-			end)
-			-- triggerbot: auto-fire when holding mouse
-			if holdConnML then holdConnML:Disconnect() end
-			holdConnML = rs.Heartbeat:Connect(function()
-				if not aimOn then return end
-				local target = getClosestTarget(fovRadius)
-				if target then
-					pcall(function() mouse1press() end)
-				else
-					pcall(function() mouse1release() end)
+			aimConnML = uis.InputBegan:Connect(function(input, processed)
+				if processed then return end
+				if aimOn and input.UserInputType == Enum.UserInputType.MouseButton1 then
+					doAimbot()
 				end
 			end)
 		else
 			aimStatus.Text = "OFF"
 			aimStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
 			if aimConnML then aimConnML:Disconnect(); aimConnML = nil end
-			if holdConnML then holdConnML:Disconnect(); holdConnML = nil end
-			if fovCircle then pcall(function() fovCircle:Remove() end); fovCircle = nil end
-		end
-	end)
-
-	-- ESP
-	local espOn = false
-	local espData = {}
-	local espConnML = nil
-	local drawingOk3 = pcall(function() return Drawing.new("Square") end)
-
-	local espBtn = Instance.new("TextButton")
-	espBtn.Size = UDim2.new(1, 0, 0, 32)
-	espBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-	espBtn.BorderSizePixel = 0
-	espBtn.Text = "  ESP"
-	espBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	espBtn.TextSize = 13
-	espBtn.TextXAlignment = Enum.TextXAlignment.Left
-	espBtn.Font = Enum.Font.Gotham
-	espBtn.Parent = container
-	Instance.new("UICorner", espBtn).CornerRadius = UDim.new(0, 6)
-
-	local espStatus = Instance.new("TextLabel")
-	espStatus.Size = UDim2.new(0, 50, 1, 0)
-	espStatus.Position = UDim2.new(1, -55, 0, 0)
-	espStatus.BackgroundTransparency = 1
-	espStatus.Text = "OFF"
-	espStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-	espStatus.TextSize = 12
-	espStatus.Font = Enum.Font.GothamBold
-	espStatus.Parent = espBtn
-
-	local function clearESP()
-		for _, d in pairs(espData) do
-			for _, dd in pairs(d) do if dd then pcall(function() dd:Remove() end) end end
-		end
-		espData = {}
-	end
-
-	local function ensureDrawingESP(p)
-		if espData[p] then return end
-		if not drawingOk3 then return end
-		espData[p] = {
-			box = Drawing.new("Square"),
-			line = Drawing.new("Line"),
-			name = Drawing.new("Text"),
-			hp = Drawing.new("Text"),
-			dist = Drawing.new("Text"),
-		}
-		local d = espData[p]
-		d.box.Visible = false; d.box.Thickness = 1; d.box.Color = Color3.fromRGB(255, 100, 100)
-		d.line.Visible = false; d.line.Thickness = 1; d.line.Color = Color3.fromRGB(255, 100, 100)
-		d.name.Visible = false; d.name.Size = 13; d.name.Center = true; d.name.Outline = true; d.name.Color = Color3.fromRGB(255, 255, 255)
-		d.hp.Visible = false; d.hp.Size = 11; d.hp.Center = true; d.hp.Outline = true; d.hp.Color = Color3.fromRGB(100, 255, 100)
-		d.dist.Visible = false; d.dist.Size = 10; d.dist.Center = true; d.dist.Outline = true; d.dist.Color = Color3.fromRGB(200, 200, 200)
-	end
-
-	local function updateESP()
-		if not drawingOk3 then return end
-		local cam = workspace.CurrentCamera
-		local myChar = player.Character
-		local myRoot = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso"))
-		local vSize = cam.ViewportSize
-
-		for p, d in pairs(espData) do
-			if not p.Parent then
-				for _, dd in pairs(d) do if dd then pcall(function() dd:Remove() end) end end
-				espData[p] = nil
-			end
-		end
-
-		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-			if p == player then continue end
-			local c = p.Character
-			if not c then
-				if espData[p] then
-					for _, dd in pairs(espData[p]) do if dd then pcall(function() dd:Remove() end) end end
-					espData[p] = nil
-				end
-				continue
-			end
-			local root = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-			local hum = c:FindFirstChildOfClass("Humanoid")
-			if not root or not hum then continue end
-			local head = c:FindFirstChild("Head")
-			local sp, vis = cam:WorldToViewportPoint(root.Position)
-			if not vis then
-				if espData[p] then for _, dd in pairs(espData[p]) do if dd then dd.Visible = false end end end
-				continue
-			end
-			ensureDrawingESP(p)
-			local d = espData[p]
-			local screenPos = Vector2.new(sp.X, sp.Y)
-			local headPos = head and cam:WorldToViewportPoint(head.Position) or sp
-			local headScreen = Vector2.new(headPos.X, headPos.Y)
-			local footSp = cam:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
-			local boxHeight = math.abs(headScreen.Y - footSp.Y)
-			local boxWidth = boxHeight * 0.6
-			local boxPos = Vector2.new(screenPos.X - boxWidth / 2, headScreen.Y)
-
-			d.box.Visible = true
-			d.box.Position = boxPos
-			d.box.Size = Vector2.new(boxWidth, boxHeight)
-			d.box.Color = hum.Health > 20 and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(255, 255, 100)
-
-			d.line.Visible = true
-			d.line.From = Vector2.new(vSize.X / 2, vSize.Y)
-			d.line.To = Vector2.new(screenPos.X, screenPos.Y + boxHeight / 2)
-
-			d.name.Visible = true
-			d.name.Position = Vector2.new(screenPos.X, headScreen.Y - 16)
-			d.name.Text = p.Name
-
-			d.hp.Visible = true
-			d.hp.Position = Vector2.new(screenPos.X, headScreen.Y - 2)
-			d.hp.Text = tostring(math.floor(hum.Health))
-			d.hp.Color = hum.Health > 50 and Color3.fromRGB(100, 255, 100) or hum.Health > 20 and Color3.fromRGB(255, 255, 100) or Color3.fromRGB(255, 100, 100)
-
-			if myRoot then
-				local dist = (root.Position - myRoot.Position).Magnitude
-				d.dist.Visible = true
-				d.dist.Position = Vector2.new(screenPos.X, footSp.Y + 2)
-				d.dist.Text = tostring(math.floor(dist)) .. " studs"
-			end
-		end
-	end
-
-	espBtn.MouseButton1Click:Connect(function()
-		espOn = not espOn
-		if espOn then
-			espStatus.Text = "ON"
-			espStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			if espConnML then espConnML:Disconnect() end
-			espConnML = rs.RenderStepped:Connect(updateESP)
-		else
-			espStatus.Text = "OFF"
-			espStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-			if espConnML then espConnML:Disconnect(); espConnML = nil end
-			clearESP()
 		end
 	end)
 
