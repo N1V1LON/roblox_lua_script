@@ -120,35 +120,26 @@ return function(container, player, uis, rs)
 		if not root then return end
 		local pos = root.Position
 
-		local playerChars = {}
+		local playerModels = {}
 		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
 			local c = p.Character
-			if c then
-				playerChars[c] = true
-			end
+			if c then playerModels[c] = true end
 		end
-
-		-- speed boost
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		local oldWS = hum and hum.WalkSpeed or 16
-		if hum then hum.WalkSpeed = oldWS * 2 end
 
 		for h = 1, hitCount do
-			for _, part in ipairs(workspace:GetDescendants()) do
-				if part == char then continue end
-				if playerChars[part] then continue end
-				local nhum = part:FindFirstChildOfClass("Humanoid")
-				if nhum and nhum.Health > 0 then
-					local r = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso")
-					if r and (r.Position - pos).Magnitude <= zoneRadius then
-						pcall(function() nhum:TakeDamage(15) end)
-					end
+			for _, obj in ipairs(workspace:GetDescendants()) do
+				if not obj:IsA("Humanoid") then continue end
+				local nhum = obj
+				if nhum.Health <= 0 then continue end
+				local parent = nhum.Parent
+				if parent == char then continue end
+				if playerModels[parent] then continue end
+				local r = parent:FindFirstChild("HumanoidRootPart") or parent:FindFirstChild("Torso") or (parent:IsA("BasePart") and parent) or parent.PrimaryPart
+				if r and (r.Position - pos).Magnitude <= zoneRadius then
+					pcall(function() nhum:TakeDamage(15) end)
 				end
 			end
-			task.wait(0.05)
 		end
-
-		if hum then hum.WalkSpeed = oldWS end
 	end
 
 	status.MouseButton1Click:Connect(function()
