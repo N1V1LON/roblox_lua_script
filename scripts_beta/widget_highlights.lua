@@ -23,7 +23,6 @@ return function(container, player, uis, rs)
 	title.Font = Enum.Font.Gotham
 	title.Parent = frame
 
-	-- NPC toggle
 	local npcBtnGroup = Instance.new("Frame")
 	npcBtnGroup.Size = UDim2.new(0.5, -6, 0, 18)
 	npcBtnGroup.Position = UDim2.new(0, 8, 0, 26)
@@ -54,7 +53,6 @@ return function(container, player, uis, rs)
 	npcStatus.Font = Enum.Font.GothamBold
 	npcStatus.Parent = npcBtnGroup
 
-	-- Items toggle
 	local itemBtnGroup = Instance.new("Frame")
 	itemBtnGroup.Size = UDim2.new(0.5, -6, 0, 18)
 	itemBtnGroup.Position = UDim2.new(0.5, 2, 0, 26)
@@ -85,7 +83,6 @@ return function(container, player, uis, rs)
 	itemStatus.Font = Enum.Font.GothamBold
 	itemStatus.Parent = itemBtnGroup
 
-	-- Info label
 	local info = Instance.new("TextLabel")
 	info.Size = UDim2.new(1, -16, 0, 14)
 	info.Position = UDim2.new(0, 8, 0, 48)
@@ -96,6 +93,34 @@ return function(container, player, uis, rs)
 	info.TextXAlignment = Enum.TextXAlignment.Left
 	info.Font = Enum.Font.Gotham
 	info.Parent = frame
+
+	local npcNames = {
+		"Alpha Wolf", "Wolf", "Crossbow Cultist", "Cultist",
+		"Bunny", "Bear", "Polar Bear",
+	}
+
+	local itemNames = {
+		"Apple", "Berry", "Bolt", "Broken Fan", "Broken Microwave",
+		"Bunny Foot", "Cake", "Carrot", "Chest", "Chilli", "Coal",
+		"Coin Stack", "Cultist Gem", "Deer", "Fuel Canister",
+		"Good Sack", "Good Axe", "Iron Body", "Item Chest",
+		"Item Chest2", "Item Chest3", "Item Chest4", "Item Chest6",
+		"Leather Body", "Log", "Medkit", "Meat? Sandwich", "Morsel",
+		"Old Car Engine", "Old Flashlight", "Old Radio", "Oil Barrel",
+		"Revolver", "Revolver Ammo", "Rifle", "Rifle Ammo",
+		"Riot Shield", "Sapling", "Seed Box", "Sheet Metal", "Spear",
+		"Steak", "Stronghold Diamond Chest", "Tyre", "Washing Machine",
+		"Wolf Corpse", "Wolf Pelt", "Alpha Wolf Pelt", "Bandage",
+		"Anvil Base", "Lost Child", "Lost Child2", "Lost Child3",
+		"Lost Child4",
+	}
+
+	local function inList(name, list)
+		for _, v in ipairs(list) do
+			if v == name then return true end
+		end
+		return false
+	end
 
 	local function toggleNPC()
 		if npcOn then
@@ -109,24 +134,18 @@ return function(container, player, uis, rs)
 			info.Text = ""
 			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("NPC highlight OFF") end
 		else
-			local playerModels = {}
-			for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-				if p.Character then playerModels[p.Character] = true end
-			end
 			local count = 0
 			for _, obj in ipairs(workspace:GetDescendants()) do
-				if obj:IsA("Humanoid") and obj.Health > 0 then
-					local parent = obj.Parent
-					if parent == player.Character then continue end
-					if playerModels[parent] then continue end
+				if obj:IsA("Model") and inList(obj.Name, npcNames) then
+					if not obj:FindFirstChildOfClass("Humanoid") then continue end
 					local hl = Instance.new("Highlight")
 					hl.Name = "N1V1LON_NPC"
 					hl.FillColor = Color3.fromRGB(255, 50, 50)
 					hl.FillTransparency = 0.5
 					hl.OutlineColor = Color3.fromRGB(255, 200, 50)
 					hl.OutlineTransparency = 0.3
-					hl.Parent = parent
-					hl.Adornee = parent
+					hl.Parent = obj
+					hl.Adornee = obj
 					table.insert(npcHighlights, hl)
 					count = count + 1
 				end
@@ -135,26 +154,8 @@ return function(container, player, uis, rs)
 			npcStatus.Text = "ON"
 			npcStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
 			info.Text = "NPC: " .. count
-			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("NPC highlight ON — " .. count .. " найдено") end
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("NPC ON — " .. count .. " найдено") end
 		end
-	end
-
-	local keywords = {
-		"ore", "iron", "gold", "diamond", "ruby", "emerald", "coal",
-		"crystal", "gem", "mineral", "node", "vein", "amethyst",
-		"sapphire", "topaz", "platinum", "silver", "copper",
-		"mithril", "adamant", "runite",
-	}
-
-	local function isCollectible(name)
-		local lower = name:lower()
-		if lower == "rock" or lower == "stone" or lower == "dirt" then return false end
-		for _, kw in ipairs(keywords) do
-			if lower:find(kw, 1, true) then
-				return true
-			end
-		end
-		return false
 	end
 
 	local function toggleItems()
@@ -172,20 +173,19 @@ return function(container, player, uis, rs)
 			local count = 0
 			local samples = {}
 			for _, obj in ipairs(workspace:GetDescendants()) do
-				if not obj:IsA("BasePart") or obj:IsA("Terrain") then continue end
-				if obj.Size.X > 15 or obj.Size.Y > 15 or obj.Size.Z > 15 then continue end
-				if not isCollectible(obj.Name) then continue end
-				local hl = Instance.new("Highlight")
-				hl.Name = "N1V1LON_Item"
-				hl.FillColor = Color3.fromRGB(50, 150, 255)
-				hl.FillTransparency = 0.4
-				hl.OutlineColor = Color3.fromRGB(255, 255, 100)
-				hl.OutlineTransparency = 0.2
-				hl.Parent = obj
-				hl.Adornee = obj
-				table.insert(itemHighlights, hl)
-				count = count + 1
-				if #samples < 5 then table.insert(samples, obj.Name) end
+				if inList(obj.Name, itemNames) then
+					local hl = Instance.new("Highlight")
+					hl.Name = "N1V1LON_Item"
+					hl.FillColor = Color3.fromRGB(50, 150, 255)
+					hl.FillTransparency = 0.4
+					hl.OutlineColor = Color3.fromRGB(255, 255, 100)
+					hl.OutlineTransparency = 0.2
+					hl.Parent = obj
+					hl.Adornee = obj
+					table.insert(itemHighlights, hl)
+					count = count + 1
+					if #samples < 5 then table.insert(samples, obj.Name) end
+				end
 			end
 			itemsOn = true
 			itemStatus.Text = "ON"

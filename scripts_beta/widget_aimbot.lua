@@ -134,6 +134,18 @@ return function(container, player, uis, rs)
 		return nil
 	end
 
+	local npcNames = {
+		"Alpha Wolf", "Wolf", "Crossbow Cultist", "Cultist",
+		"Bunny", "Bear", "Polar Bear",
+	}
+
+	local function inList(name)
+		for _, v in ipairs(npcNames) do
+			if v == name then return true end
+		end
+		return false
+	end
+
 	local function doAimbot()
 		local char = player.Character
 		if not char then return end
@@ -141,21 +153,15 @@ return function(container, player, uis, rs)
 		if not root then return end
 		local pos = root.Position
 
-		local playerModels = {}
-		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-			if p.Character then playerModels[p.Character] = true end
-		end
-
 		local targets = {}
 		for _, obj in ipairs(workspace:GetDescendants()) do
-			if not obj:IsA("Humanoid") then continue end
-			if obj.Health <= 0 then continue end
-			local parent = obj.Parent
-			if parent == char then continue end
-			if playerModels[parent] then continue end
-			local npcPos = getNPCPos(parent)
+			if not obj:IsA("Model") then continue end
+			if not inList(obj.Name) then continue end
+			local hum = obj:FindFirstChildOfClass("Humanoid")
+			if not hum or hum.Health <= 0 then continue end
+			local npcPos = getNPCPos(obj)
 			if npcPos and (npcPos - pos).Magnitude <= zoneRadius then
-				table.insert(targets, obj)
+				table.insert(targets, hum)
 			end
 		end
 
