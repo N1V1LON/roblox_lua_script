@@ -84,6 +84,42 @@ local ok, err = pcall(function()
 	gui.ResetOnSpawn = false
 	gui.Parent = pg
 
+	local msgFrame = Instance.new("Frame")
+	msgFrame.Size = UDim2.new(0.6, 0, 0, 24)
+	msgFrame.Position = UDim2.new(0.2, 0, 0, 60)
+	msgFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+	msgFrame.BackgroundTransparency = 0.3
+	msgFrame.BorderSizePixel = 0
+	msgFrame.Parent = gui
+	Instance.new("UICorner", msgFrame).CornerRadius = UDim.new(0, 6)
+
+	local msgLabel = Instance.new("TextLabel")
+	msgLabel.Size = UDim2.new(1, -12, 1, 0)
+	msgLabel.Position = UDim2.new(0, 6, 0, 0)
+	msgLabel.BackgroundTransparency = 1
+	msgLabel.Text = ""
+	msgLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	msgLabel.TextSize = 12
+	msgLabel.TextXAlignment = Enum.TextXAlignment.Left
+	msgLabel.Font = Enum.Font.Gotham
+	msgLabel.Parent = msgFrame
+	msgFrame.Visible = false
+
+	_G.N1V1LON.showMsg = function(text)
+		msgLabel.Text = text
+		msgFrame.Visible = true
+		msgFrame.BackgroundTransparency = 0.3
+		task.delay(3, function()
+			for i = 0, 20 do
+				msgFrame.BackgroundTransparency = 0.3 + (i / 20) * 0.7
+				msgLabel.TextTransparency = i / 20
+				task.wait(0.05)
+			end
+			msgFrame.Visible = false
+			msgLabel.TextTransparency = 0
+		end)
+	end
+
 	-- periodic block check
 	task.spawn(function()
 		while gui and gui.Parent do

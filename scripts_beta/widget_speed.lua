@@ -85,25 +85,24 @@ return function(container, player, uis, rs)
 
 	spdStatus.MouseButton1Click:Connect(function()
 		speedOn = not speedOn
-		warn("[N1V1LON DEBUG] Speed toggled: " .. tostring(speedOn))
 		if speedOn then
 			applySpeed()
 			if not speedHeartbeat then
 				speedHeartbeat = rs.Heartbeat:Connect(applySpeed)
-				warn("[N1V1LON DEBUG] Speed Heartbeat connected")
 			end
 			spdStatus.Text = "ON"
 			spdStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Speed ON — " .. speedVal) end
 		else
 			if speedHeartbeat then
 				speedHeartbeat:Disconnect()
 				speedHeartbeat = nil
-				warn("[N1V1LON DEBUG] Speed Heartbeat disconnected")
 			end
 			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 			if hum then hum.WalkSpeed = 16 end
 			spdStatus.Text = "OFF"
 			spdStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Speed OFF") end
 		end
 	end)
 end

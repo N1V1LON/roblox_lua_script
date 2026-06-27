@@ -28,13 +28,11 @@ return function(container, player, uis, rs)
 
 	btn.MouseButton1Click:Connect(function()
 		infJumpOn = not infJumpOn
-		warn("[N1V1LON DEBUG] Infinite Jump toggled: " .. tostring(infJumpOn))
 		if infJumpOn then
 			local function apply(char)
 				local hum = char:FindFirstChildOfClass("Humanoid")
 				if hum then
 					hum.UseJumpPower = false
-					warn("[N1V1LON DEBUG] InfJump applied to character")
 				end
 			end
 			local char = player.Character
@@ -45,17 +43,20 @@ return function(container, player, uis, rs)
 					local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 					if hum then
 						hum:ChangeState(Enum.HumanoidStateType.Jumping)
-						warn("[N1V1LON DEBUG] InfJump triggered")
 					end
 				end
 			end)
 			status.Text = "ON"
 			status.TextColor3 = Color3.fromRGB(60, 200, 120)
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("InfJump ON") end
 		else
 			if infJumpConn then infJumpConn:Disconnect(); infJumpConn = nil end
 			if jumpReqConn then jumpReqConn:Disconnect(); jumpReqConn = nil end
 			status.Text = "OFF"
 			status.TextColor3 = Color3.fromRGB(140, 60, 60)
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("InfJump OFF") end
+		end
+	end)
 		end
 	end)
 end

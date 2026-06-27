@@ -159,7 +159,7 @@ return function(container, player, uis, rs)
 			end
 		end
 
-		warn("[N1V1LON DEBUG] Aimbot: " .. #targets .. " NPC, damage " .. damagePower .. " x " .. hitCount)
+		if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot: " .. #targets .. " NPC, " .. damagePower .. " dmg x" .. hitCount) end
 		for h = 1, hitCount do
 			for _, nhum in ipairs(targets) do
 				if nhum.Health > 0 then
@@ -174,16 +174,15 @@ return function(container, player, uis, rs)
 
 	status.MouseButton1Click:Connect(function()
 		aimOn = not aimOn
-		warn("[N1V1LON DEBUG] Aimbot toggled: " .. tostring(aimOn))
 		if aimOn then
 			status.Text = "ON"
 			status.TextColor3 = Color3.fromRGB(60, 200, 120)
 			createSphere()
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot ON — zone " .. zoneRadius) end
 			if aimConn then aimConn:Disconnect() end
 			aimConn = uis.InputBegan:Connect(function(input, processed)
 				if processed then return end
 				if aimOn and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-					warn("[N1V1LON DEBUG] Aimbot triggered")
 					doAimbot()
 				end
 			end)
@@ -191,6 +190,7 @@ return function(container, player, uis, rs)
 			status.Text = "OFF"
 			status.TextColor3 = Color3.fromRGB(140, 60, 60)
 			destroySphere()
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot OFF") end
 			if aimConn then aimConn:Disconnect(); aimConn = nil end
 		end
 	end)

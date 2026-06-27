@@ -98,7 +98,6 @@ return function(container, player, uis, rs)
 	info.Parent = frame
 
 	local function toggleNPC()
-		warn("[N1V1LON DEBUG] Highlights NPC toggled: " .. tostring(not npcOn))
 		if npcOn then
 			for _, hl in ipairs(npcHighlights) do
 				pcall(function() hl:Destroy() end)
@@ -108,6 +107,7 @@ return function(container, player, uis, rs)
 			npcStatus.Text = "OFF"
 			npcStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
 			info.Text = ""
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("NPC highlight OFF") end
 		else
 			local playerModels = {}
 			for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
@@ -135,7 +135,7 @@ return function(container, player, uis, rs)
 			npcStatus.Text = "ON"
 			npcStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
 			info.Text = "NPC: " .. count
-			warn("[N1V1LON DEBUG] Highlights NPC найдено: " .. count)
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("NPC highlight ON — " .. count .. " найдено") end
 		end
 	end
 
@@ -158,7 +158,6 @@ return function(container, player, uis, rs)
 	end
 
 	local function toggleItems()
-		warn("[N1V1LON DEBUG] Highlights Items toggled: " .. tostring(not itemsOn))
 		if itemsOn then
 			for _, hl in ipairs(itemHighlights) do
 				pcall(function() hl:Destroy() end)
@@ -168,6 +167,7 @@ return function(container, player, uis, rs)
 			itemStatus.Text = "OFF"
 			itemStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
 			info.Text = ""
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Items highlight OFF") end
 		else
 			local count = 0
 			local samples = {}
@@ -192,8 +192,10 @@ return function(container, player, uis, rs)
 			itemStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
 			if #samples > 0 then
 				info.Text = "Items: " .. count .. " (" .. table.concat(samples, ", ") .. ")"
+				if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Items ON — " .. count .. " (" .. table.concat(samples, ", ") .. ")") end
 			else
 				info.Text = "Items: " .. count
+				if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Items ON — " .. count) end
 			end
 		end
 	end
