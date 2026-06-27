@@ -190,8 +190,11 @@ return function(container, player, uis, rs)
 			itemsOn = true
 			itemStatus.Text = "ON"
 			itemStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			info.Text = "Items: " .. count
-			warn("[N1V1LON DEBUG] Highlights Items найдено: " .. count .. " — примеры: " .. table.concat(samples, ", "))
+			if #samples > 0 then
+				info.Text = "Items: " .. count .. " (" .. table.concat(samples, ", ") .. ")"
+			else
+				info.Text = "Items: " .. count
+			end
 		end
 	end
 
