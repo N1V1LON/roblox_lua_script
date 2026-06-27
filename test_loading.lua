@@ -26,36 +26,26 @@ end
 
 -- ==================== SETTINGS PERSISTENCE ====================
 local SETTINGS_PATH = "N1V1LON_settings.txt"
-local settings = {
-	language = "ru",
-	theme = "dark",
-}
+local settings = { language = "ru", theme = "dark" }
 
 local function saveSettings()
-	local ok = pcall(function()
-		writefile(SETTINGS_PATH, HttpService:JSONEncode(settings))
-	end)
+	local ok = pcall(function() writefile(SETTINGS_PATH, HttpService:JSONEncode(settings)) end)
 	if ok then addLog("Settings saved") end
 end
 
 local function loadSettings()
-	local ok, raw = pcall(function()
-		return readfile(SETTINGS_PATH)
-	end)
+	local ok, raw = pcall(function() return readfile(SETTINGS_PATH) end)
 	if ok and raw then
-		local ok2, data = pcall(function()
-			return HttpService:JSONDecode(raw)
-		end)
+		local ok2, data = pcall(function() return HttpService:JSONDecode(raw) end)
 		if ok2 and type(data) == "table" then
 			if data.language then settings.language = data.language end
 			if data.theme then settings.theme = data.theme end
-			addLog("Settings loaded: lang=" .. settings.language .. " theme=" .. settings.theme)
 		end
 	end
 end
 loadSettings()
 
--- ==================== THEME COLORS ====================
+-- ==================== THEME ====================
 local themes = {
 	dark = {
 		menuBg = Color3.fromRGB(20, 20, 30),
@@ -64,7 +54,6 @@ local themes = {
 		widgetBg = Color3.fromRGB(35, 35, 50),
 		btnBg = Color3.fromRGB(45, 45, 60),
 		btnActiveBg = Color3.fromRGB(60, 60, 90),
-		btnHoverBg = Color3.fromRGB(55, 55, 75),
 		textMain = Color3.fromRGB(200, 200, 220),
 		textDim = Color3.fromRGB(120, 120, 160),
 		textTitle = Color3.fromRGB(220, 220, 255),
@@ -79,7 +68,6 @@ local themes = {
 		widgetBg = Color3.fromRGB(230, 230, 240),
 		btnBg = Color3.fromRGB(215, 215, 225),
 		btnActiveBg = Color3.fromRGB(200, 215, 235),
-		btnHoverBg = Color3.fromRGB(220, 220, 230),
 		textMain = Color3.fromRGB(40, 40, 55),
 		textDim = Color3.fromRGB(100, 100, 120),
 		textTitle = Color3.fromRGB(20, 20, 35),
@@ -92,18 +80,6 @@ local themes = {
 local currentTheme = themes[settings.theme] or themes.dark
 local allThemed = {}
 
-local function themeApply()
-	for _, entry in ipairs(allThemed) do
-		pcall(function()
-			if entry.prop == "BackgroundColor3" then
-				entry.obj.BackgroundColor3 = entry.color
-			elseif entry.prop == "TextColor3" then
-				entry.obj.TextColor3 = entry.color
-			end
-		end)
-	end
-end
-
 local function themeRegister(obj, prop, colorKey)
 	table.insert(allThemed, { obj = obj, prop = prop, colorKey = colorKey })
 	pcall(function()
@@ -113,6 +89,109 @@ local function themeRegister(obj, prop, colorKey)
 			obj.TextColor3 = currentTheme[colorKey]
 		end
 	end)
+end
+
+local function themeApply()
+	for _, entry in ipairs(allThemed) do
+		pcall(function()
+			if entry.prop == "BackgroundColor3" then
+				entry.obj.BackgroundColor3 = currentTheme[entry.colorKey]
+			elseif entry.prop == "TextColor3" then
+				entry.obj.TextColor3 = currentTheme[entry.colorKey]
+			end
+		end)
+	end
+end
+
+-- ==================== I18N ====================
+local T = {
+	ru = {
+		player = "Игрок",
+		server = "Сервер",
+		settings = "Настройки",
+		infJump = "Бесконечный прыжок",
+		on = "ВКЛ",
+		off = "ВЫКЛ",
+		highlights = "Подсветка",
+		npc = "NPC",
+		items = "Предметы",
+		teleport = "Телепорт",
+		checkpoints = "Чекпоинты",
+		aimbot = "Aimbot",
+		zone = "Зона: ",
+		hits = "Удары: ",
+		damage = "Урон: ",
+		language = "Язык / Language",
+		theme = "Тема оформления",
+		dark = "Тёмная",
+		light = "Светлая",
+		version = "v26.2.1.0 Beta",
+		build = "Сборка: beta (scripts_beta)",
+		speed = "Скорость",
+		npcFound = "NPC найдено",
+		itemsFound = "Предметов найдено",
+	},
+	en = {
+		player = "Player",
+		server = "Server",
+		settings = "Settings",
+		infJump = "Infinite Jump",
+		on = "ON",
+		off = "OFF",
+		highlights = "Highlights",
+		npc = "NPC",
+		items = "Items",
+		teleport = "Teleport",
+		checkpoints = "Checkpoints",
+		aimbot = "Aimbot",
+		zone = "Zone: ",
+		hits = "Hits: ",
+		damage = "Damage: ",
+		language = "Language / Язык",
+		theme = "Theme",
+		dark = "Dark",
+		light = "Light",
+		version = "v26.2.1.0 Beta",
+		build = "Build: beta (scripts_beta)",
+		speed = "Speed",
+		npcFound = "NPC found",
+		itemsFound = "Items found",
+	},
+}
+
+local currentLang = T[settings.language] or T.ru
+local langLabels = {}
+
+local function langRegister(label)
+	table.insert(langLabels, label)
+end
+
+local function applyLang()
+	currentLang = T[settings.language] or T.ru
+	for _, item in ipairs(langLabels) do
+		pcall(function()
+			local key = item.key
+			if currentLang[key] then
+				if item.suffix then
+					item.obj.Text = currentLang[key] .. item.suffix
+				else
+					item.obj.Text = currentLang[key]
+				end
+			end
+		end)
+	end
+	-- Special labels that need extra suffix
+	local npcCount = npcHighlights and #npcHighlights or 0
+	local itemCount = itemHighlights and #itemHighlights or 0
+	if currentLang and infoLabel then
+		if npcOn then
+			infoLabel.Text = currentLang.npc .. ": " .. npcCount
+		elseif itemsOn then
+			infoLabel.Text = currentLang.items .. ": " .. itemCount
+		else
+			infoLabel.Text = ""
+		end
+	end
 end
 
 -- ==================== MAIN SCRIPT ====================
@@ -139,14 +218,11 @@ local ok, err = pcall(function()
 
 	-- Block check
 	local blockUrl = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/users/players.lua"
-	local okB, blockRaw = pcall(function()
-		return game:HttpGet(blockUrl, true)
-	end)
+	local okB, blockRaw = pcall(function() return game:HttpGet(blockUrl, true) end)
 	if okB and blockRaw then
 		local okFn, playersTbl = pcall(loadstring, blockRaw)
 		if okFn and type(playersTbl) == "table" then
-			local pData = playersTbl[player.UserId]
-			if pData and pData.blocked == true then
+			if playersTbl[player.UserId] and playersTbl[player.UserId].blocked == true then
 				warn("N1V1LON: blocked " .. player.Name)
 				chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
 				return
@@ -166,14 +242,11 @@ local ok, err = pcall(function()
 			local okB2, raw2 = pcall(function() return game:HttpGet(blockUrl, true) end)
 			if okB2 and raw2 then
 				local okFn2, tbl2 = pcall(loadstring, raw2)
-				if okFn2 and type(tbl2) == "table" then
-					local pData2 = tbl2[player.UserId]
-					if pData2 and pData2.blocked == true then
-						chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
-						if gui then pcall(function() gui:Destroy() end) end
-						_G.N1V1LON.blocked = true
-						return
-					end
+				if okFn2 and type(tbl2) == "table" and tbl2[player.UserId] and tbl2[player.UserId].blocked == true then
+					chatLocal("N1V1LON: access blocked", Color3.fromRGB(255, 50, 50))
+					if gui then pcall(function() gui:Destroy() end) end
+					_G.N1V1LON.blocked = true
+					return
 				end
 			end
 		end
@@ -218,7 +291,7 @@ local ok, err = pcall(function()
 		end)
 	end
 
-	-- Icon Button with β label
+	-- Icon with β
 	local icon = Instance.new("TextButton")
 	icon.Name = "Icon"
 	icon.Size = UDim2.new(0, 48, 0, 48)
@@ -245,22 +318,22 @@ local ok, err = pcall(function()
 	betaLabel.ZIndex = 2
 	betaLabel.Parent = icon
 
-	-- Menu Frame (compact)
+	-- Menu
 	local menu = Instance.new("Frame")
 	menu.Name = "Menu"
 	menu.Size = UDim2.new(0, 300, 0, 400)
 	menu.Position = UDim2.new(0.5, -150, 0.5, -200)
-	menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+	menu.BackgroundColor3 = currentTheme.menuBg
 	menu.BorderSizePixel = 0
 	menu.Visible = false
 	menu.Parent = gui
 	Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 10)
 	themeRegister(menu, "BackgroundColor3", "menuBg")
 
-	-- Title Bar
+	-- Title
 	local titleBar = Instance.new("Frame")
 	titleBar.Size = UDim2.new(1, 0, 0, 30)
-	titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+	titleBar.BackgroundColor3 = currentTheme.titleBarBg
 	titleBar.BorderSizePixel = 0
 	titleBar.Parent = menu
 	Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
@@ -271,7 +344,7 @@ local ok, err = pcall(function()
 	title.Position = UDim2.new(0, 8, 0, 0)
 	title.BackgroundTransparency = 1
 	title.Text = "N1V1LON"
-	title.TextColor3 = Color3.fromRGB(220, 220, 255)
+	title.TextColor3 = currentTheme.textTitle
 	title.TextSize = 11
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Font = Enum.Font.GothamBold
@@ -308,44 +381,56 @@ local ok, err = pcall(function()
 	closeBtn.Font = Enum.Font.GothamBold
 	closeBtn.Parent = titleBar
 
-	closeBtn.MouseButton1Click:Connect(function()
-		menu.Visible = false
-	end)
-
-	icon.MouseButton1Click:Connect(function()
-		menu.Visible = not menu.Visible
-	end)
+	closeBtn.MouseButton1Click:Connect(function() menu.Visible = false end)
+	icon.MouseButton1Click:Connect(function() menu.Visible = not menu.Visible end)
 
 	-- Tabs
 	local tabsFrame = Instance.new("Frame")
 	tabsFrame.Size = UDim2.new(1, 0, 0, 30)
 	tabsFrame.Position = UDim2.new(0, 0, 0, 30)
-	tabsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+	tabsFrame.BackgroundColor3 = currentTheme.tabsBg
 	tabsFrame.BorderSizePixel = 0
 	tabsFrame.Parent = menu
-	Instance.new("UICorner", tabsFrame).CornerRadius = UDim.new(0, 0)
 	themeRegister(tabsFrame, "BackgroundColor3", "tabsBg")
 
-	local function makeTabBtn(name, parent, posX)
-		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(1/3, 0, 1, 0)
-		btn.Position = UDim2.new(posX, 0, 0, 0)
-		btn.BackgroundTransparency = 1
-		btn.Text = name
-		btn.TextColor3 = Color3.fromRGB(120, 120, 160)
-		btn.TextSize = 11
-		btn.Font = Enum.Font.GothamBold
-		btn.AutoButtonColor = false
-		btn.Parent = parent
-		return btn
-	end
-
-	local tabPlayer = makeTabBtn("Player", tabsFrame, 0)
-	local tabServer = makeTabBtn("Server", tabsFrame, 1/3)
-	local tabSettings = makeTabBtn("Settings", tabsFrame, 2/3)
+	local tabPlayer = Instance.new("TextButton")
+	tabPlayer.Size = UDim2.new(1/3, 0, 1, 0)
+	tabPlayer.Position = UDim2.new(0, 0, 0, 0)
+	tabPlayer.BackgroundTransparency = 1
+	tabPlayer.Text = currentLang.player
+	tabPlayer.TextColor3 = currentTheme.textDim
+	tabPlayer.TextSize = 11
+	tabPlayer.Font = Enum.Font.GothamBold
+	tabPlayer.AutoButtonColor = false
+	tabPlayer.Parent = tabsFrame
 	themeRegister(tabPlayer, "TextColor3", "textDim")
+	langRegister({ obj = tabPlayer, key = "player" })
+
+	local tabServer = Instance.new("TextButton")
+	tabServer.Size = UDim2.new(1/3, 0, 1, 0)
+	tabServer.Position = UDim2.new(1/3, 0, 0, 0)
+	tabServer.BackgroundTransparency = 1
+	tabServer.Text = currentLang.server
+	tabServer.TextColor3 = currentTheme.textDim
+	tabServer.TextSize = 11
+	tabServer.Font = Enum.Font.GothamBold
+	tabServer.AutoButtonColor = false
+	tabServer.Parent = tabsFrame
 	themeRegister(tabServer, "TextColor3", "textDim")
+	langRegister({ obj = tabServer, key = "server" })
+
+	local tabSettings = Instance.new("TextButton")
+	tabSettings.Size = UDim2.new(1/3, 0, 1, 0)
+	tabSettings.Position = UDim2.new(2/3, 0, 0, 0)
+	tabSettings.BackgroundTransparency = 1
+	tabSettings.Text = currentLang.settings
+	tabSettings.TextColor3 = currentTheme.textDim
+	tabSettings.TextSize = 11
+	tabSettings.Font = Enum.Font.GothamBold
+	tabSettings.AutoButtonColor = false
+	tabSettings.Parent = tabsFrame
 	themeRegister(tabSettings, "TextColor3", "textDim")
+	langRegister({ obj = tabSettings, key = "settings" })
 
 	-- Content
 	local content = Instance.new("ScrollingFrame")
@@ -360,7 +445,6 @@ local ok, err = pcall(function()
 	content.Parent = menu
 	Instance.new("UIListLayout", content).Padding = UDim.new(0, 5)
 
-	-- Tab contents
 	local playerTab = Instance.new("Frame")
 	playerTab.Size = UDim2.new(1, 0, 0, 0)
 	playerTab.BackgroundTransparency = 1
@@ -382,16 +466,13 @@ local ok, err = pcall(function()
 	settingsTab.Parent = content
 	Instance.new("UIListLayout", settingsTab).Padding = UDim.new(0, 5)
 
-	-- Tab switching
 	local function switchTab(activeTab)
 		playerTab.Visible = false
 		serverTab.Visible = false
 		settingsTab.Visible = false
-
 		tabPlayer.TextColor3 = currentTheme.textDim
 		tabServer.TextColor3 = currentTheme.textDim
 		tabSettings.TextColor3 = currentTheme.textDim
-
 		if activeTab == "player" then
 			playerTab.Visible = true
 			tabPlayer.TextColor3 = currentTheme.accentBlue
@@ -410,6 +491,67 @@ local ok, err = pcall(function()
 
 	-- ==================== PLAYER TAB ====================
 
+	-- Speed
+	local speedOn = false
+	local speedConn = nil
+	local currentSpeed = 50
+	local normalSpeed = 16
+
+	local speedBtn = Instance.new("TextButton")
+	speedBtn.Size = UDim2.new(1, 0, 0, 30)
+	speedBtn.BackgroundColor3 = currentTheme.widgetBg
+	speedBtn.BorderSizePixel = 0
+	speedBtn.Text = "  " .. currentLang.speed
+	speedBtn.TextColor3 = currentTheme.textMain
+	speedBtn.TextSize = 12
+	speedBtn.TextXAlignment = Enum.TextXAlignment.Left
+	speedBtn.Font = Enum.Font.Gotham
+	speedBtn.AutoButtonColor = false
+	speedBtn.Parent = playerTab
+	Instance.new("UICorner", speedBtn).CornerRadius = UDim.new(0, 6)
+	themeRegister(speedBtn, "BackgroundColor3", "widgetBg")
+	themeRegister(speedBtn, "TextColor3", "textMain")
+	langRegister({ obj = speedBtn, key = "speed", suffix = "" })
+
+	local speedStatus = Instance.new("TextLabel")
+	speedStatus.Size = UDim2.new(0, 44, 1, 0)
+	speedStatus.Position = UDim2.new(1, -75, 0, 0)
+	speedStatus.BackgroundTransparency = 1
+	speedStatus.Text = currentLang.off
+	speedStatus.TextColor3 = currentTheme.statusOff
+	speedStatus.TextSize = 11
+	speedStatus.Font = Enum.Font.GothamBold
+	speedStatus.Parent = speedBtn
+	langRegister({ obj = speedStatus, key = "off" })
+
+	speedBtn.MouseButton1Click:Connect(function()
+		speedOn = not speedOn
+		if speedOn then
+			local function apply(char)
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if hum then hum.WalkSpeed = currentSpeed end
+			end
+			local char = player.Character
+			if char then apply(char) end
+			speedConn = player.CharacterAdded:Connect(apply)
+			speedStatus.Text = currentLang.on .. " " .. currentSpeed
+			speedStatus.TextColor3 = currentTheme.statusOn
+			addLog("Speed ON: " .. currentSpeed)
+			_G.N1V1LON.showMsg("Speed: " .. currentSpeed)
+		else
+			if speedConn then speedConn:Disconnect(); speedConn = nil end
+			local char = player.Character
+			if char then
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if hum then hum.WalkSpeed = normalSpeed end
+			end
+			speedStatus.Text = currentLang.off
+			speedStatus.TextColor3 = currentTheme.statusOff
+			addLog("Speed OFF")
+			_G.N1V1LON.showMsg("Speed OFF")
+		end
+	end)
+
 	-- Infinite Jump
 	local infJumpOn = false
 	local infJumpConn = nil
@@ -419,7 +561,7 @@ local ok, err = pcall(function()
 	infJumpBtn.Size = UDim2.new(1, 0, 0, 30)
 	infJumpBtn.BackgroundColor3 = currentTheme.widgetBg
 	infJumpBtn.BorderSizePixel = 0
-	infJumpBtn.Text = "  Infinite Jump"
+	infJumpBtn.Text = "  " .. currentLang.infJump
 	infJumpBtn.TextColor3 = currentTheme.textMain
 	infJumpBtn.TextSize = 12
 	infJumpBtn.TextXAlignment = Enum.TextXAlignment.Left
@@ -429,16 +571,18 @@ local ok, err = pcall(function()
 	Instance.new("UICorner", infJumpBtn).CornerRadius = UDim.new(0, 6)
 	themeRegister(infJumpBtn, "BackgroundColor3", "widgetBg")
 	themeRegister(infJumpBtn, "TextColor3", "textMain")
+	langRegister({ obj = infJumpBtn, key = "infJump", suffix = "" })
 
 	local infJumpStatus = Instance.new("TextLabel")
 	infJumpStatus.Size = UDim2.new(0, 44, 1, 0)
 	infJumpStatus.Position = UDim2.new(1, -48, 0, 0)
 	infJumpStatus.BackgroundTransparency = 1
-	infJumpStatus.Text = "OFF"
+	infJumpStatus.Text = currentLang.off
 	infJumpStatus.TextColor3 = currentTheme.statusOff
 	infJumpStatus.TextSize = 11
 	infJumpStatus.Font = Enum.Font.GothamBold
 	infJumpStatus.Parent = infJumpBtn
+	langRegister({ obj = infJumpStatus, key = "off" })
 
 	infJumpBtn.MouseButton1Click:Connect(function()
 		infJumpOn = not infJumpOn
@@ -456,21 +600,21 @@ local ok, err = pcall(function()
 					if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 				end
 			end)
-			infJumpStatus.Text = "ON"
+			infJumpStatus.Text = currentLang.on
 			infJumpStatus.TextColor3 = currentTheme.statusOn
 			addLog("InfJump ON")
 			_G.N1V1LON.showMsg("InfJump ON")
 		else
 			if infJumpConn then infJumpConn:Disconnect(); infJumpConn = nil end
 			if jumpReqConn then jumpReqConn:Disconnect(); jumpReqConn = nil end
-			infJumpStatus.Text = "OFF"
+			infJumpStatus.Text = currentLang.off
 			infJumpStatus.TextColor3 = currentTheme.statusOff
 			addLog("InfJump OFF")
 			_G.N1V1LON.showMsg("InfJump OFF")
 		end
 	end)
 
-	-- Highlights Widget
+	-- Highlights
 	local highlightsFrame = Instance.new("Frame")
 	highlightsFrame.Size = UDim2.new(1, 0, 0, 60)
 	highlightsFrame.BackgroundColor3 = currentTheme.widgetBg
@@ -483,15 +627,16 @@ local ok, err = pcall(function()
 	highlightsTitle.Size = UDim2.new(1, -12, 0, 18)
 	highlightsTitle.Position = UDim2.new(0, 8, 0, 3)
 	highlightsTitle.BackgroundTransparency = 1
-	highlightsTitle.Text = "Highlights"
+	highlightsTitle.Text = currentLang.highlights
 	highlightsTitle.TextColor3 = currentTheme.textMain
 	highlightsTitle.TextSize = 12
 	highlightsTitle.TextXAlignment = Enum.TextXAlignment.Left
 	highlightsTitle.Font = Enum.Font.Gotham
 	highlightsTitle.Parent = highlightsFrame
 	themeRegister(highlightsTitle, "TextColor3", "textMain")
+	langRegister({ obj = highlightsTitle, key = "highlights" })
 
-	local function makeHighlightBtn(parent, labelText, posX)
+	local function makeHighlightBtn(parent, labelText, key, posX)
 		local btn = Instance.new("TextButton")
 		btn.Size = UDim2.new(0.5, -6, 0, 18)
 		btn.Position = UDim2.new(posX, posX == 0 and 8 or 2, 0, 24)
@@ -514,23 +659,24 @@ local ok, err = pcall(function()
 		lbl.Font = Enum.Font.Gotham
 		lbl.Parent = btn
 		themeRegister(lbl, "TextColor3", "textMain")
+		langRegister({ obj = lbl, key = key })
 
 		local st = Instance.new("TextLabel")
 		st.Size = UDim2.new(0.35, -2, 1, 0)
 		st.Position = UDim2.new(0.65, 2, 0, 0)
 		st.BackgroundTransparency = 1
-		st.Text = "OFF"
+		st.Text = currentLang.off
 		st.TextColor3 = currentTheme.statusOff
 		st.TextSize = 10
 		st.TextXAlignment = Enum.TextXAlignment.Center
 		st.Font = Enum.Font.GothamBold
 		st.Parent = btn
 
-		return btn, st
+		return btn, st, lbl
 	end
 
-	local npcBtnGroup, npcStatus = makeHighlightBtn(highlightsFrame, "NPC", 0)
-	local itemBtnGroup, itemStatus = makeHighlightBtn(highlightsFrame, "Items", 0.5)
+	local npcBtnGroup, npcStatus, npcLbl = makeHighlightBtn(highlightsFrame, currentLang.npc, "npc", 0)
+	local itemBtnGroup, itemStatus, itemLbl = makeHighlightBtn(highlightsFrame, currentLang.items, "items", 0.5)
 
 	local infoLabel = Instance.new("TextLabel")
 	infoLabel.Size = UDim2.new(1, -12, 0, 12)
@@ -548,6 +694,8 @@ local ok, err = pcall(function()
 	local itemsOn = false
 	local npcHighlights = {}
 	local itemHighlights = {}
+	local npcCount = 0
+	local itemCount = 0
 
 	local npcNames = {
 		"Alpha Wolf", "Wolf", "Crossbow Cultist", "Cultist",
@@ -579,16 +727,13 @@ local ok, err = pcall(function()
 	local function toggleNPC()
 		if npcOn then
 			for _, hl in ipairs(npcHighlights) do pcall(function() hl:Destroy() end) end
-			npcHighlights = {}
-			npcOn = false
-			npcStatus.Text = "OFF"
-			npcStatus.TextColor3 = currentTheme.statusOff
+			npcHighlights = {}; npcOn = false; npcCount = 0
+			npcStatus.Text = currentLang.off; npcStatus.TextColor3 = currentTheme.statusOff
 			npcBtnGroup.BackgroundColor3 = currentTheme.btnBg
 			infoLabel.Text = ""
-			addLog("NPC OFF")
-			_G.N1V1LON.showMsg("NPC highlight OFF")
+			addLog("NPC OFF"); _G.N1V1LON.showMsg("NPC highlight OFF")
 		else
-			local count = 0
+			npcCount = 0
 			for _, obj in ipairs(workspace:GetDescendants()) do
 				if obj:IsA("Model") and inList(obj.Name, npcNames) then
 					if not obj:FindFirstChildOfClass("Humanoid") then continue end
@@ -597,36 +742,30 @@ local ok, err = pcall(function()
 					hl.FillTransparency = 0.5
 					hl.OutlineColor = Color3.fromRGB(255, 200, 50)
 					hl.OutlineTransparency = 0.3
-					hl.Parent = obj
-					hl.Adornee = obj
+					hl.Parent = obj; hl.Adornee = obj
 					table.insert(npcHighlights, hl)
-					count = count + 1
+					npcCount = npcCount + 1
 				end
 			end
 			npcOn = true
-			npcStatus.Text = "ON"
-			npcStatus.TextColor3 = currentTheme.statusOn
+			npcStatus.Text = currentLang.on; npcStatus.TextColor3 = currentTheme.statusOn
 			npcBtnGroup.BackgroundColor3 = currentTheme.btnActiveBg
-			infoLabel.Text = "NPC: " .. count
-			addLog("NPC ON — " .. count)
-			_G.N1V1LON.showMsg("NPC ON — " .. count)
+			infoLabel.Text = currentLang.npc .. ": " .. npcCount
+			addLog("NPC ON: " .. npcCount)
+			_G.N1V1LON.showMsg(currentLang.npc .. ": " .. npcCount)
 		end
 	end
 
 	local function toggleItems()
 		if itemsOn then
 			for _, hl in ipairs(itemHighlights) do pcall(function() hl:Destroy() end) end
-			itemHighlights = {}
-			itemsOn = false
-			itemStatus.Text = "OFF"
-			itemStatus.TextColor3 = currentTheme.statusOff
+			itemHighlights = {}; itemsOn = false; itemCount = 0
+			itemStatus.Text = currentLang.off; itemStatus.TextColor3 = currentTheme.statusOff
 			itemBtnGroup.BackgroundColor3 = currentTheme.btnBg
 			infoLabel.Text = ""
-			addLog("Items OFF")
-			_G.N1V1LON.showMsg("Items highlight OFF")
+			addLog("Items OFF"); _G.N1V1LON.showMsg("Items highlight OFF")
 		else
-			local count = 0
-			local samples = {}
+			itemCount = 0
 			for _, obj in ipairs(workspace:GetDescendants()) do
 				if inList(obj.Name, itemNames) then
 					local hl = Instance.new("Highlight")
@@ -634,29 +773,24 @@ local ok, err = pcall(function()
 					hl.FillTransparency = 0.4
 					hl.OutlineColor = Color3.fromRGB(255, 255, 100)
 					hl.OutlineTransparency = 0.2
-					hl.Parent = obj
-					hl.Adornee = obj
+					hl.Parent = obj; hl.Adornee = obj
 					table.insert(itemHighlights, hl)
-					count = count + 1
-					if #samples < 3 then table.insert(samples, obj.Name) end
+					itemCount = itemCount + 1
 				end
 			end
 			itemsOn = true
-			itemStatus.Text = "ON"
-			itemStatus.TextColor3 = currentTheme.statusOn
+			itemStatus.Text = currentLang.on; itemStatus.TextColor3 = currentTheme.statusOn
 			itemBtnGroup.BackgroundColor3 = currentTheme.btnActiveBg
-			local infoText = "Items: " .. count
-			if #samples > 0 then infoText = infoText .. " (" .. table.concat(samples, ", ") .. ")" end
-			infoLabel.Text = infoText
-			addLog("Items ON — " .. count)
-			_G.N1V1LON.showMsg("Items ON — " .. count)
+			infoLabel.Text = currentLang.items .. ": " .. itemCount
+			addLog("Items ON: " .. itemCount)
+			_G.N1V1LON.showMsg(currentLang.items .. ": " .. itemCount)
 		end
 	end
 
 	npcBtnGroup.MouseButton1Click:Connect(toggleNPC)
 	itemBtnGroup.MouseButton1Click:Connect(toggleItems)
 
-	-- Aimbot Widget
+	-- Aimbot
 	local aimOn = false
 	local zoneRadius = 50
 	local hitCount = 5
@@ -677,25 +811,26 @@ local ok, err = pcall(function()
 	aimbotTitle.Size = UDim2.new(0, 100, 0, 18)
 	aimbotTitle.Position = UDim2.new(0, 8, 0, 3)
 	aimbotTitle.BackgroundTransparency = 1
-	aimbotTitle.Text = "Aimbot"
+	aimbotTitle.Text = currentLang.aimbot
 	aimbotTitle.TextColor3 = currentTheme.textMain
 	aimbotTitle.TextSize = 12
 	aimbotTitle.TextXAlignment = Enum.TextXAlignment.Left
 	aimbotTitle.Font = Enum.Font.Gotham
 	aimbotTitle.Parent = aimbotFrame
 	themeRegister(aimbotTitle, "TextColor3", "textMain")
+	langRegister({ obj = aimbotTitle, key = "aimbot" })
 
 	local aimbotStatus = Instance.new("TextButton")
 	aimbotStatus.Size = UDim2.new(0, 44, 0, 18)
 	aimbotStatus.Position = UDim2.new(1, -50, 0, 3)
 	aimbotStatus.BackgroundTransparency = 1
-	aimbotStatus.Text = "OFF"
+	aimbotStatus.Text = currentLang.off
 	aimbotStatus.TextColor3 = currentTheme.statusOff
 	aimbotStatus.TextSize = 11
 	aimbotStatus.Font = Enum.Font.GothamBold
 	aimbotStatus.Parent = aimbotFrame
 
-	local function makeSlider(parent, yPos, label, getter, setter, maxVal, barColor, labelColor)
+	local function makeSlider(parent, yPos, label, labelKey, getter, setter, maxVal, barColor, labelColor)
 		local lbl = Instance.new("TextLabel")
 		lbl.Size = UDim2.new(0, 120, 0, 12)
 		lbl.Position = UDim2.new(0, 8, 0, yPos)
@@ -706,6 +841,11 @@ local ok, err = pcall(function()
 		lbl.TextXAlignment = Enum.TextXAlignment.Left
 		lbl.Font = Enum.Font.Gotham
 		lbl.Parent = parent
+		-- register for lang update
+		local function updateSliderText()
+			lbl.Text = currentLang[labelKey] .. tostring(getter())
+		end
+		table.insert(langLabels, { obj = { Text = "" }, key = labelKey })
 
 		local bar = Instance.new("TextButton")
 		bar.Size = UDim2.new(1, -20, 0, 7)
@@ -733,23 +873,26 @@ local ok, err = pcall(function()
 				local val = math.max(1, math.floor(frac * maxVal))
 				if maxVal == 500 then val = math.max(5, val) end
 				setter(val)
-				lbl.Text = label .. tostring(getter())
+				lbl.Text = currentLang[labelKey] .. tostring(getter())
 				fill.Size = UDim2.new(math.clamp(getter() / maxVal, 0, 1), 0, 1, 0)
 			end
 		end)
+
+		-- Override lang update for this label
+		local origUpdate = lbl.Text
+		return lbl, bar, fill
 	end
 
-	makeSlider(aimbotFrame, 22, "Zone: ", function() return zoneRadius end, function(v) zoneRadius = v end, 500, Color3.fromRGB(60, 200, 120), Color3.fromRGB(160, 200, 160))
-	makeSlider(aimbotFrame, 46, "Hits: ", function() return hitCount end, function(v) hitCount = v end, 50, Color3.fromRGB(200, 200, 100), Color3.fromRGB(200, 200, 100))
-	makeSlider(aimbotFrame, 70, "Damage: ", function() return damagePower end, function(v) damagePower = v end, 100, Color3.fromRGB(200, 100, 100), Color3.fromRGB(200, 120, 120))
+	makeSlider(aimbotFrame, 22, currentLang.zone, "zone", function() return zoneRadius end, function(v) zoneRadius = v end, 500, Color3.fromRGB(60, 200, 120), Color3.fromRGB(160, 200, 160))
+	makeSlider(aimbotFrame, 46, currentLang.hits, "hits", function() return hitCount end, function(v) hitCount = v end, 50, Color3.fromRGB(200, 200, 100), Color3.fromRGB(200, 200, 100))
+	makeSlider(aimbotFrame, 70, currentLang.damage, "damage", function() return damagePower end, function(v) damagePower = v end, 100, Color3.fromRGB(200, 100, 100), Color3.fromRGB(200, 120, 120))
 
 	local function createSphere()
 		if spherePart then pcall(function() spherePart:Destroy() end) end
 		spherePart = Instance.new("Part")
 		spherePart.Shape = Enum.PartType.Ball
 		spherePart.Size = Vector3.new(zoneRadius * 2, zoneRadius * 2, zoneRadius * 2)
-		spherePart.Anchored = true
-		spherePart.CanCollide = false
+		spherePart.Anchored = true; spherePart.CanCollide = false
 		spherePart.Transparency = 0.85
 		spherePart.Color = Color3.fromRGB(100, 200, 255)
 		spherePart.Material = Enum.Material.Neon
@@ -804,7 +947,6 @@ local ok, err = pcall(function()
 				table.insert(targets, hum)
 			end
 		end
-		_G.N1V1LON.showMsg("Aimbot: " .. #targets .. " NPC, " .. damagePower .. " dmg x" .. hitCount)
 		addLog("Aimbot: " .. #targets .. " targets")
 		for h = 1, hitCount do
 			for _, nhum in ipairs(targets) do
@@ -819,11 +961,10 @@ local ok, err = pcall(function()
 	aimbotStatus.MouseButton1Click:Connect(function()
 		aimOn = not aimOn
 		if aimOn then
-			aimbotStatus.Text = "ON"
+			aimbotStatus.Text = currentLang.on
 			aimbotStatus.TextColor3 = currentTheme.statusOn
 			createSphere()
-			addLog("Aimbot ON — zone " .. zoneRadius)
-			_G.N1V1LON.showMsg("Aimbot ON — zone " .. zoneRadius)
+			addLog("Aimbot ON"); _G.N1V1LON.showMsg("Aimbot ON")
 			if aimConn then aimConn:Disconnect() end
 			aimConn = UserInputService.InputBegan:Connect(function(input, processed)
 				if processed then return end
@@ -832,11 +973,10 @@ local ok, err = pcall(function()
 				end
 			end)
 		else
-			aimbotStatus.Text = "OFF"
+			aimbotStatus.Text = currentLang.off
 			aimbotStatus.TextColor3 = currentTheme.statusOff
 			destroySphere()
-			addLog("Aimbot OFF")
-			_G.N1V1LON.showMsg("Aimbot OFF")
+			addLog("Aimbot OFF"); _G.N1V1LON.showMsg("Aimbot OFF")
 			if aimConn then aimConn:Disconnect(); aimConn = nil end
 		end
 	end)
@@ -847,7 +987,7 @@ local ok, err = pcall(function()
 	teleportLabel.Size = UDim2.new(1, 0, 0, 18)
 	teleportLabel.BackgroundColor3 = currentTheme.btnBg
 	teleportLabel.BorderSizePixel = 0
-	teleportLabel.Text = "  Teleport"
+	teleportLabel.Text = "  " .. currentLang.teleport
 	teleportLabel.TextColor3 = currentTheme.textDim
 	teleportLabel.TextSize = 11
 	teleportLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -856,8 +996,9 @@ local ok, err = pcall(function()
 	Instance.new("UICorner", teleportLabel).CornerRadius = UDim.new(0, 4)
 	themeRegister(teleportLabel, "BackgroundColor3", "btnBg")
 	themeRegister(teleportLabel, "TextColor3", "textDim")
+	langRegister({ obj = teleportLabel, key = "teleport", suffix = "" })
 
-	-- Checkpoints Widget
+	-- Checkpoints
 	local checkpoints = {}
 
 	local cpFrame = Instance.new("Frame")
@@ -877,13 +1018,14 @@ local ok, err = pcall(function()
 	cpLabel.Size = UDim2.new(0, 120, 1, 0)
 	cpLabel.Position = UDim2.new(0, 8, 0, 0)
 	cpLabel.BackgroundTransparency = 1
-	cpLabel.Text = "Checkpoints"
+	cpLabel.Text = currentLang.checkpoints
 	cpLabel.TextColor3 = currentTheme.textMain
 	cpLabel.TextSize = 12
 	cpLabel.TextXAlignment = Enum.TextXAlignment.Left
 	cpLabel.Font = Enum.Font.Gotham
 	cpLabel.Parent = cpHeader
 	themeRegister(cpLabel, "TextColor3", "textMain")
+	langRegister({ obj = cpLabel, key = "checkpoints" })
 
 	local cpAddBtn = Instance.new("TextButton")
 	cpAddBtn.Size = UDim2.new(0, 18, 0, 18)
@@ -897,7 +1039,6 @@ local ok, err = pcall(function()
 	cpAddBtn.Parent = cpHeader
 	Instance.new("UICorner", cpAddBtn).CornerRadius = UDim.new(0, 3)
 	themeRegister(cpAddBtn, "BackgroundColor3", "btnBg")
-	themeRegister(cpAddBtn, "TextColor3", "statusOn")
 
 	local cpList = Instance.new("ScrollingFrame")
 	cpList.Size = UDim2.new(1, -8, 1, -24)
@@ -907,9 +1048,7 @@ local ok, err = pcall(function()
 	cpList.ScrollBarThickness = 3
 	cpList.CanvasSize = UDim2.new(0, 0, 0, 0)
 	cpList.Parent = cpFrame
-	local cpLayout = Instance.new("UIListLayout")
-	cpLayout.Padding = UDim.new(0, 2)
-	cpLayout.Parent = cpList
+	local cpLayout = Instance.new("UIListLayout"); cpLayout.Padding = UDim.new(0, 2); cpLayout.Parent = cpList
 
 	local function addCP()
 		local char = player.Character
@@ -925,8 +1064,7 @@ local ok, err = pcall(function()
 		row.BorderSizePixel = 0
 		row.Text = "  CP " .. id .. "  (" .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z) .. ")"
 		row.TextColor3 = currentTheme.textMain
-		row.TextSize = 10
-		row.Font = Enum.Font.Gotham
+		row.TextSize = 10; row.Font = Enum.Font.Gotham
 		row.TextXAlignment = Enum.TextXAlignment.Left
 		row.Parent = cpList
 		Instance.new("UICorner", row).CornerRadius = UDim.new(0, 3)
@@ -934,9 +1072,7 @@ local ok, err = pcall(function()
 		local entry = { pos = pos, row = row, id = id }
 		table.insert(checkpoints, entry)
 
-		local held = false
-		local holdTask = nil
-
+		local held = false; local holdTask = nil
 		row.MouseButton1Down:Connect(function()
 			held = false
 			holdTask = task.delay(0.5, function()
@@ -944,9 +1080,7 @@ local ok, err = pcall(function()
 				row.BackgroundColor3 = Color3.fromRGB(80, 40, 40)
 				task.delay(0.6, function()
 					row:Destroy()
-					for i, e in ipairs(checkpoints) do
-						if e == entry then table.remove(checkpoints, i); break end
-					end
+					for i, e in ipairs(checkpoints) do if e == entry then table.remove(checkpoints, i); break end end
 				end)
 			end)
 		end)
@@ -985,13 +1119,14 @@ local ok, err = pcall(function()
 	langLabel.Size = UDim2.new(1, -12, 0, 14)
 	langLabel.Position = UDim2.new(0, 8, 0, 4)
 	langLabel.BackgroundTransparency = 1
-	langLabel.Text = "Язык / Language"
+	langLabel.Text = currentLang.language
 	langLabel.TextColor3 = currentTheme.textMain
 	langLabel.TextSize = 11
 	langLabel.TextXAlignment = Enum.TextXAlignment.Left
 	langLabel.Font = Enum.Font.Gotham
 	langLabel.Parent = langFrame
 	themeRegister(langLabel, "TextColor3", "textMain")
+	langRegister({ obj = langLabel, key = "language" })
 
 	local langRuBtn = Instance.new("TextButton")
 	langRuBtn.Size = UDim2.new(0.5, -6, 0, 20)
@@ -1034,19 +1169,22 @@ local ok, err = pcall(function()
 	end
 	updateLangBtns()
 
+	local function applyAll()
+		applyLang()
+		updateLangBtns()
+	end
+
 	langRuBtn.MouseButton1Click:Connect(function()
 		settings.language = "ru"
-		updateLangBtns()
+		applyAll()
 		saveSettings()
-		addLog("Language: Русский")
 		_G.N1V1LON.showMsg("Язык: Русский")
 	end)
 
 	langEnBtn.MouseButton1Click:Connect(function()
 		settings.language = "en"
-		updateLangBtns()
+		applyAll()
 		saveSettings()
-		addLog("Language: English")
 		_G.N1V1LON.showMsg("Language: English")
 	end)
 
@@ -1063,96 +1201,104 @@ local ok, err = pcall(function()
 	themeLabel.Size = UDim2.new(1, -12, 0, 14)
 	themeLabel.Position = UDim2.new(0, 8, 0, 4)
 	themeLabel.BackgroundTransparency = 1
-	themeLabel.Text = "Тема оформления"
+	themeLabel.Text = currentLang.theme
 	themeLabel.TextColor3 = currentTheme.textMain
 	themeLabel.TextSize = 11
 	themeLabel.TextXAlignment = Enum.TextXAlignment.Left
 	themeLabel.Font = Enum.Font.Gotham
 	themeLabel.Parent = themeFrame
 	themeRegister(themeLabel, "TextColor3", "textMain")
+	langRegister({ obj = themeLabel, key = "theme" })
 
 	local themeDarkBtn = Instance.new("TextButton")
 	themeDarkBtn.Size = UDim2.new(0.5, -6, 0, 20)
 	themeDarkBtn.Position = UDim2.new(0, 8, 0, 20)
 	themeDarkBtn.BorderSizePixel = 2
-	themeDarkBtn.Text = "Тёмная"
+	themeDarkBtn.Text = currentLang.dark
 	themeDarkBtn.TextColor3 = currentTheme.textMain
 	themeDarkBtn.TextSize = 11
 	themeDarkBtn.Font = Enum.Font.Gotham
 	themeDarkBtn.Parent = themeFrame
 	Instance.new("UICorner", themeDarkBtn).CornerRadius = UDim.new(0, 4)
+	langRegister({ obj = themeDarkBtn, key = "dark", suffix = "" })
 
 	local themeLightBtn = Instance.new("TextButton")
 	themeLightBtn.Size = UDim2.new(0.5, -6, 0, 20)
 	themeLightBtn.Position = UDim2.new(0.5, 2, 0, 20)
 	themeLightBtn.BorderSizePixel = 2
-	themeLightBtn.Text = "Светлая"
+	themeLightBtn.Text = currentLang.light
 	themeLightBtn.TextColor3 = currentTheme.textMain
 	themeLightBtn.TextSize = 11
 	themeLightBtn.Font = Enum.Font.Gotham
 	themeLightBtn.Parent = themeFrame
 	Instance.new("UICorner", themeLightBtn).CornerRadius = UDim.new(0, 4)
+	langRegister({ obj = themeLightBtn, key = "light", suffix = "" })
 
 	local function applyTheme(themeName)
 		settings.theme = themeName
 		currentTheme = themes[themeName] or themes.dark
 		themeApply()
-		-- Update status colors for infJump, aimbot, highlights
-		if infJumpOn then infJumpStatus.TextColor3 = currentTheme.statusOn else infJumpStatus.TextColor3 = currentTheme.statusOff end
-		if npcOn then npcStatus.TextColor3 = currentTheme.statusOn; npcBtnGroup.BackgroundColor3 = currentTheme.btnActiveBg
-		else npcStatus.TextColor3 = currentTheme.statusOff; npcBtnGroup.BackgroundColor3 = currentTheme.btnBg end
-		if itemsOn then itemStatus.TextColor3 = currentTheme.statusOn; itemBtnGroup.BackgroundColor3 = currentTheme.btnActiveBg
-		else itemStatus.TextColor3 = currentTheme.statusOff; itemBtnGroup.BackgroundColor3 = currentTheme.btnBg end
-		if aimOn then aimbotStatus.TextColor3 = currentTheme.statusOn else aimbotStatus.TextColor3 = currentTheme.statusOff end
-		-- Tab highlight
+		-- Update status texts
+		speedStatus.Text = speedOn and (currentLang.on .. " " .. currentSpeed) or currentLang.off
+		speedStatus.TextColor3 = speedOn and currentTheme.statusOn or currentTheme.statusOff
+		infJumpStatus.Text = infJumpOn and currentLang.on or currentLang.off
+		infJumpStatus.TextColor3 = infJumpOn and currentTheme.statusOn or currentTheme.statusOff
+		npcStatus.Text = npcOn and currentLang.on or currentLang.off
+		npcStatus.TextColor3 = npcOn and currentTheme.statusOn or currentTheme.statusOff
+		npcBtnGroup.BackgroundColor3 = npcOn and currentTheme.btnActiveBg or currentTheme.btnBg
+		itemStatus.Text = itemsOn and currentLang.on or currentLang.off
+		itemStatus.TextColor3 = itemsOn and currentTheme.statusOn or currentTheme.statusOff
+		itemBtnGroup.BackgroundColor3 = itemsOn and currentTheme.btnActiveBg or currentTheme.btnBg
+		aimbotStatus.Text = aimOn and currentLang.on or currentLang.off
+		aimbotStatus.TextColor3 = aimOn and currentTheme.statusOn or currentTheme.statusOff
 		switchTab(playerTab.Visible and "player" or serverTab.Visible and "server" or "settings")
 		-- Theme btns
 		if settings.theme == "dark" then
 			themeDarkBtn.BackgroundColor3 = currentTheme.btnActiveBg
 			themeDarkBtn.BorderColor3 = currentTheme.accentBlue
-			themeDarkBtn.Text = "Тёмная ✓"
+			themeDarkBtn.Text = currentLang.dark .. " ✓"
 			themeLightBtn.BackgroundColor3 = currentTheme.btnBg
 			themeLightBtn.BorderColor3 = currentTheme.btnBg
-			themeLightBtn.Text = "Светлая"
+			themeLightBtn.Text = currentLang.light
 		else
 			themeLightBtn.BackgroundColor3 = currentTheme.btnActiveBg
 			themeLightBtn.BorderColor3 = currentTheme.accentBlue
-			themeLightBtn.Text = "Светлая ✓"
+			themeLightBtn.Text = currentLang.light .. " ✓"
 			themeDarkBtn.BackgroundColor3 = currentTheme.btnBg
 			themeDarkBtn.BorderColor3 = currentTheme.btnBg
-			themeDarkBtn.Text = "Тёмная"
+			themeDarkBtn.Text = currentLang.dark
 		end
 		themeLabel.TextColor3 = currentTheme.textMain
 		langLabel.TextColor3 = currentTheme.textMain
 	end
 
-	-- Initial theme btn state
+	-- Init theme btns
 	if settings.theme == "dark" then
 		themeDarkBtn.BackgroundColor3 = currentTheme.btnActiveBg
 		themeDarkBtn.BorderColor3 = currentTheme.accentBlue
-		themeDarkBtn.Text = "Тёмная ✓"
+		themeDarkBtn.Text = currentLang.dark .. " ✓"
 		themeLightBtn.BackgroundColor3 = currentTheme.btnBg
 		themeLightBtn.BorderColor3 = currentTheme.btnBg
+		themeLightBtn.Text = currentLang.light
 	else
 		themeLightBtn.BackgroundColor3 = currentTheme.btnActiveBg
 		themeLightBtn.BorderColor3 = currentTheme.accentBlue
-		themeLightBtn.Text = "Светлая ✓"
+		themeLightBtn.Text = currentLang.light .. " ✓"
 		themeDarkBtn.BackgroundColor3 = currentTheme.btnBg
 		themeDarkBtn.BorderColor3 = currentTheme.btnBg
+		themeDarkBtn.Text = currentLang.dark
 	end
 
 	themeDarkBtn.MouseButton1Click:Connect(function()
 		applyTheme("dark")
 		saveSettings()
-		addLog("Theme: Тёмная")
-		_G.N1V1LON.showMsg("Тема: Тёмная")
+		_G.N1V1LON.showMsg(currentLang.dark)
 	end)
 
 	themeLightBtn.MouseButton1Click:Connect(function()
 		applyTheme("light")
 		saveSettings()
-		addLog("Theme: Светлая")
-		_G.N1V1LON.showMsg("Тема: Светлая")
+		_G.N1V1LON.showMsg(currentLang.light)
 	end)
 
 	-- Version
@@ -1168,39 +1314,39 @@ local ok, err = pcall(function()
 	versionLabel.Size = UDim2.new(1, -12, 0, 14)
 	versionLabel.Position = UDim2.new(0, 8, 0, 2)
 	versionLabel.BackgroundTransparency = 1
-	versionLabel.Text = "v26.2.1.0 Beta"
+	versionLabel.Text = currentLang.version
 	versionLabel.TextColor3 = currentTheme.textMain
 	versionLabel.TextSize = 11
 	versionLabel.TextXAlignment = Enum.TextXAlignment.Left
 	versionLabel.Font = Enum.Font.Gotham
 	versionLabel.Parent = versionFrame
 	themeRegister(versionLabel, "TextColor3", "textMain")
+	langRegister({ obj = versionLabel, key = "version" })
 
 	local buildLabel = Instance.new("TextLabel")
 	buildLabel.Size = UDim2.new(1, -12, 0, 12)
 	buildLabel.Position = UDim2.new(0, 8, 0, 16)
 	buildLabel.BackgroundTransparency = 1
-	buildLabel.Text = "Build: beta (scripts_beta)"
+	buildLabel.Text = currentLang.build
 	buildLabel.TextColor3 = currentTheme.textDim
 	buildLabel.TextSize = 9
 	buildLabel.TextXAlignment = Enum.TextXAlignment.Left
 	buildLabel.Font = Enum.Font.Gotham
 	buildLabel.Parent = versionFrame
 	themeRegister(buildLabel, "TextColor3", "textDim")
+	langRegister({ obj = buildLabel, key = "build" })
 
-	-- ==================== LOG BUTTON ====================
+	-- ==================== LOG ====================
 	logBtn.MouseButton1Click:Connect(function()
 		local dataLines = {}
 		table.insert(dataLines, "=== N1V1LON Debug Log ===")
 		table.insert(dataLines, "Version: v26.2.1.0 Beta")
 		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Game ---")
 		local okG, gName = pcall(function() return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name end)
-		table.insert(dataLines, "Game: " .. (okG and gName or "unknown"))
+		table.insert(dataLines, "Game: " .. (okG and gName or "?"))
 		table.insert(dataLines, "PlaceId: " .. game.PlaceId)
 		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Player ---")
-		table.insert(dataLines, "Name: " .. player.Name .. " (" .. player.UserId .. ")")
+		table.insert(dataLines, "Player: " .. player.Name .. " (" .. player.UserId .. ")")
 		local char = player.Character
 		if char then
 			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
@@ -1209,10 +1355,8 @@ local ok, err = pcall(function()
 			if hum then table.insert(dataLines, "HP: " .. math.floor(hum.Health) .. "/" .. hum.MaxHealth .. " WS:" .. hum.WalkSpeed) end
 		end
 		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Logs ---")
 		for _, line in ipairs(_G.N1V1LON.logs) do table.insert(dataLines, line) end
 		table.insert(dataLines, "")
-		table.insert(dataLines, "--- Players ---")
 		for _, p in ipairs(Players:GetPlayers()) do
 			local info = p.Name
 			local c = p.Character
@@ -1220,30 +1364,24 @@ local ok, err = pcall(function()
 			table.insert(dataLines, "  " .. info)
 		end
 		table.insert(dataLines, "=== End ===")
-
 		local fullText = table.concat(dataLines, "\n")
-		local saved = false
-		local savePath = ""
+		local saved = false; local savePath = ""
 		pcall(function() makefolder("logsave") end)
 		for _, path in ipairs({ "logsave/N1V1LON_log.txt", "N1V1LON_log_save.txt", "log_save.txt" }) do
-			if not saved then
-				pcall(function() writefile(path, fullText); saved = true; savePath = path end)
-			end
+			if not saved then pcall(function() writefile(path, fullText); saved = true; savePath = path end) end
 		end
 		if saved then
-			addLog("Log saved: " .. savePath)
+			addLog("Log: " .. savePath)
 			chatLocal("Log saved (" .. #dataLines .. " lines)", Color3.fromRGB(100, 255, 100))
 		end
 		warn("=== N1V1LON LOG ===\n" .. fullText .. "\n=== END ===")
 	end)
 
-	-- ==================== BETA SELF-UPDATE ====================
+	-- ==================== BETA ====================
 	betaBtn.MouseButton1Click:Connect(function()
 		addLog("β self-update")
 		if gui then pcall(function() gui:Destroy() end) end
-		if _G.N1V1LON.cleanup then
-			for _, fn in ipairs(_G.N1V1LON.cleanup) do pcall(fn) end
-		end
+		if _G.N1V1LON.cleanup then for _, fn in ipairs(_G.N1V1LON.cleanup) do pcall(fn) end end
 		task.wait(0.3)
 		local okS, script = pcall(function()
 			return game:HttpGet("https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/test_loading.lua", true)
