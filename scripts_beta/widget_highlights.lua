@@ -5,6 +5,11 @@ return function(container, player, uis, rs)
 	local npcHighlights = {}
 	local itemHighlights = {}
 
+	local npcCache = {}
+	local itemCache = {}
+	local lastScan = 0
+	local SCAN_COOLDOWN = 5 -- Scan every 5 seconds
+
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, 0, 0, 68)
 	frame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
@@ -23,13 +28,15 @@ return function(container, player, uis, rs)
 	title.Font = Enum.Font.Gotham
 	title.Parent = frame
 
-	local npcBtnGroup = Instance.new("Frame")
-	npcBtnGroup.Size = UDim2.new(0.5, -6, 0, 18)
-	npcBtnGroup.Position = UDim2.new(0, 8, 0, 26)
-	npcBtnGroup.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-	npcBtnGroup.BorderSizePixel = 0
-	npcBtnGroup.Parent = frame
-	Instance.new("UICorner", npcBtnGroup).CornerRadius = UDim.new(0, 4)
+	local npcBtn = Instance.new("TextButton")
+	npcBtn.Size = UDim2.new(0.5, -6, 0, 24)
+	npcBtn.Position = UDim2.new(0, 8, 0, 26)
+	npcBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+	npcBtn.BorderSizePixel = 0
+	npcBtn.Text = ""
+	npcBtn.AutoButtonColor = false
+	npcBtn.Parent = frame
+	Instance.new("UICorner", npcBtn).CornerRadius = UDim.new(0, 4)
 
 	local npcLabel = Instance.new("TextLabel")
 	npcLabel.Size = UDim2.new(0.7, -4, 1, 0)
@@ -40,7 +47,7 @@ return function(container, player, uis, rs)
 	npcLabel.TextSize = 12
 	npcLabel.TextXAlignment = Enum.TextXAlignment.Left
 	npcLabel.Font = Enum.Font.Gotham
-	npcLabel.Parent = npcBtnGroup
+	npcLabel.Parent = npcBtn
 
 	local npcStatus = Instance.new("TextLabel")
 	npcStatus.Size = UDim2.new(0.3, -2, 1, 0)
@@ -51,15 +58,17 @@ return function(container, player, uis, rs)
 	npcStatus.TextSize = 11
 	npcStatus.TextXAlignment = Enum.TextXAlignment.Center
 	npcStatus.Font = Enum.Font.GothamBold
-	npcStatus.Parent = npcBtnGroup
+	npcStatus.Parent = npcBtn
 
-	local itemBtnGroup = Instance.new("Frame")
-	itemBtnGroup.Size = UDim2.new(0.5, -6, 0, 18)
-	itemBtnGroup.Position = UDim2.new(0.5, 2, 0, 26)
-	itemBtnGroup.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-	itemBtnGroup.BorderSizePixel = 0
-	itemBtnGroup.Parent = frame
-	Instance.new("UICorner", itemBtnGroup).CornerRadius = UDim.new(0, 4)
+	local itemBtn = Instance.new("TextButton")
+	itemBtn.Size = UDim2.new(0.5, -6, 0, 24)
+	itemBtn.Position = UDim2.new(0.5, 2, 0, 26)
+	itemBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+	itemBtn.BorderSizePixel = 0
+	itemBtn.Text = ""
+	itemBtn.AutoButtonColor = false
+	itemBtn.Parent = frame
+	Instance.new("UICorner", itemBtn).CornerRadius = UDim.new(0, 4)
 
 	local itemLabel = Instance.new("TextLabel")
 	itemLabel.Size = UDim2.new(0.7, -4, 1, 0)
@@ -70,7 +79,7 @@ return function(container, player, uis, rs)
 	itemLabel.TextSize = 12
 	itemLabel.TextXAlignment = Enum.TextXAlignment.Left
 	itemLabel.Font = Enum.Font.Gotham
-	itemLabel.Parent = itemBtnGroup
+	itemLabel.Parent = itemBtn
 
 	local itemStatus = Instance.new("TextLabel")
 	itemStatus.Size = UDim2.new(0.3, -2, 1, 0)
@@ -81,11 +90,11 @@ return function(container, player, uis, rs)
 	itemStatus.TextSize = 11
 	itemStatus.TextXAlignment = Enum.TextXAlignment.Center
 	itemStatus.Font = Enum.Font.GothamBold
-	itemStatus.Parent = itemBtnGroup
+	itemStatus.Parent = itemBtn
 
 	local info = Instance.new("TextLabel")
 	info.Size = UDim2.new(1, -16, 0, 14)
-	info.Position = UDim2.new(0, 8, 0, 48)
+	info.Position = UDim2.new(0, 8, 0, 52)
 	info.BackgroundTransparency = 1
 	info.Text = ""
 	info.TextColor3 = Color3.fromRGB(120, 120, 160)
@@ -122,93 +131,127 @@ return function(container, player, uis, rs)
 		return false
 	end
 
-	local function toggleNPC()
+	local function clearHighlights(tbl)
+		for obj, hl in pairs(tbl) do
+			pcall(function() hl:Destroy() end)
+		end
+		return {}
+	end
+
+	local function countTable(t)
+		local c = 0
+		for _ in pairs(t) do c = c + 1 end
+		return c
+	end
+
+	local function scanWorkspace()
+		if tick() - lastScan < SCAN_COOLDOWN then return end
+		lastScan = tick()
+
+		local newNpcCache = {}
+		local newItemCache = {}
+
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			if obj:IsA("Model") and inList(obj.Name, npcNames) then
+				if obj:FindFirstChildOfClass("Humanoid") then
+					table.insert(newNpcCache, obj)
+				end
+			elseif inList(obj.Name, itemNames) then
+				table.insert(newItemCache, obj)
+			end
+		end
+		npcCache = newNpcCache
+		itemCache = newItemCache
+	end
+
+	local function updateNPC()
+		npcHighlights = clearHighlights(npcHighlights)
+		if not npcOn then return end
+
+		scanWorkspace()
+		local count = 0
+		for _, obj in ipairs(npcCache) do
+			if obj.Parent then
+				local hl = Instance.new("Highlight")
+				hl.Name = "N1V1LON_NPC"
+				hl.FillColor = Color3.fromRGB(255, 50, 50)
+				hl.FillTransparency = 0.5
+				hl.OutlineColor = Color3.fromRGB(255, 200, 50)
+				hl.OutlineTransparency = 0.3
+				hl.Parent = obj
+				hl.Adornee = obj
+				npcHighlights[obj] = hl
+				count = count + 1
+			end
+		end
+		info.Text = "NPC: " .. count
+	end
+
+	local function updateItems()
+		itemHighlights = clearHighlights(itemHighlights)
+		if not itemsOn then return end
+
+		scanWorkspace()
+		local count = 0
+		for _, obj in ipairs(itemCache) do
+			if obj.Parent then
+				local hl = Instance.new("Highlight")
+				hl.Name = "N1V1LON_Item"
+				hl.FillColor = Color3.fromRGB(50, 150, 255)
+				hl.FillTransparency = 0.4
+				hl.OutlineColor = Color3.fromRGB(255, 255, 100)
+				hl.OutlineTransparency = 0.2
+				hl.Parent = obj
+				hl.Adornee = obj
+				itemHighlights[obj] = hl
+				count = count + 1
+			end
+		end
+		info.Text = (npcOn and "NPC: " .. countTable(npcHighlights) .. " | " or "") .. "Items: " .. count
+	end
+
+	npcBtn.MouseButton1Click:Connect(function()
+		npcOn = not npcOn
+		npcStatus.Text = npcOn and "ON" or "OFF"
+		npcStatus.TextColor3 = npcOn and Color3.fromRGB(60, 200, 120) or Color3.fromRGB(140, 60, 60)
 		if npcOn then
-			for _, hl in ipairs(npcHighlights) do
-				pcall(function() hl:Destroy() end)
-			end
-			npcHighlights = {}
-			npcOn = false
-			npcStatus.Text = "OFF"
-			npcStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-			info.Text = ""
+			updateNPC()
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("NPC highlight ON") end
+		else
+			npcHighlights = clearHighlights(npcHighlights)
+			info.Text = itemsOn and info.Text:gsub("NPC: %d+ | ", "") or ""
 			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("NPC highlight OFF") end
-		else
-			local count = 0
-			for _, obj in ipairs(workspace:GetDescendants()) do
-				if obj:IsA("Model") and inList(obj.Name, npcNames) then
-					if not obj:FindFirstChildOfClass("Humanoid") then continue end
-					local hl = Instance.new("Highlight")
-					hl.Name = "N1V1LON_NPC"
-					hl.FillColor = Color3.fromRGB(255, 50, 50)
-					hl.FillTransparency = 0.5
-					hl.OutlineColor = Color3.fromRGB(255, 200, 50)
-					hl.OutlineTransparency = 0.3
-					hl.Parent = obj
-					hl.Adornee = obj
-					table.insert(npcHighlights, hl)
-					count = count + 1
-				end
-			end
-			npcOn = true
-			npcStatus.Text = "ON"
-			npcStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			info.Text = "NPC: " .. count
-			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("NPC ON — " .. count .. " найдено") end
-		end
-	end
-
-	local function toggleItems()
-		if itemsOn then
-			for _, hl in ipairs(itemHighlights) do
-				pcall(function() hl:Destroy() end)
-			end
-			itemHighlights = {}
-			itemsOn = false
-			itemStatus.Text = "OFF"
-			itemStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
-			info.Text = ""
-			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Items highlight OFF") end
-		else
-			local count = 0
-			local samples = {}
-			for _, obj in ipairs(workspace:GetDescendants()) do
-				if inList(obj.Name, itemNames) then
-					local hl = Instance.new("Highlight")
-					hl.Name = "N1V1LON_Item"
-					hl.FillColor = Color3.fromRGB(50, 150, 255)
-					hl.FillTransparency = 0.4
-					hl.OutlineColor = Color3.fromRGB(255, 255, 100)
-					hl.OutlineTransparency = 0.2
-					hl.Parent = obj
-					hl.Adornee = obj
-					table.insert(itemHighlights, hl)
-					count = count + 1
-					if #samples < 5 then table.insert(samples, obj.Name) end
-				end
-			end
-			itemsOn = true
-			itemStatus.Text = "ON"
-			itemStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
-			if #samples > 0 then
-				info.Text = "Items: " .. count .. " (" .. table.concat(samples, ", ") .. ")"
-				if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Items ON — " .. count .. " (" .. table.concat(samples, ", ") .. ")") end
-			else
-				info.Text = "Items: " .. count
-				if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Items ON — " .. count) end
-			end
-		end
-	end
-
-	npcBtnGroup.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			toggleNPC()
 		end
 	end)
 
-	itemBtnGroup.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			toggleItems()
+	itemBtn.MouseButton1Click:Connect(function()
+		itemsOn = not itemsOn
+		itemStatus.Text = itemsOn and "ON" or "OFF"
+		itemStatus.TextColor3 = itemsOn and Color3.fromRGB(60, 200, 120) or Color3.fromRGB(140, 60, 60)
+		if itemsOn then
+			updateItems()
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Items highlight ON") end
+		else
+			itemHighlights = clearHighlights(itemHighlights)
+			info.Text = npcOn and "NPC: " .. countTable(npcHighlights) or ""
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Items highlight OFF") end
 		end
+	end)
+
+	-- Periodic update to catch new objects
+	task.spawn(function()
+		while frame and frame.Parent do
+			task.wait(SCAN_COOLDOWN)
+			if npcOn or itemsOn then
+				scanWorkspace()
+				if npcOn then updateNPC() end
+				if itemsOn then updateItems() end
+			end
+		end
+	end)
+
+	table.insert(_G.N1V1LON.cleanup, function()
+		clearHighlights(npcHighlights)
+		clearHighlights(itemHighlights)
 	end)
 end

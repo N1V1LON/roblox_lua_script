@@ -44,6 +44,7 @@ return function(container, player, uis, rs)
 	cpList.BorderSizePixel = 0
 	cpList.ScrollBarThickness = 3
 	cpList.CanvasSize = UDim2.new(0, 0, 0, 0)
+	cpList.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	cpList.Parent = cpFrame
 	local cpLayout = Instance.new("UIListLayout")
 	cpLayout.FillDirection = Enum.FillDirection.Vertical
@@ -62,6 +63,7 @@ return function(container, player, uis, rs)
 			return
 		end
 		local pos = root.Position
+		local cf = root.CFrame
 		local id = #checkpoints + 1
 		warn("[N1V1LON DEBUG] CP saved #" .. id .. " at " .. tostring(pos))
 
@@ -77,8 +79,8 @@ return function(container, player, uis, rs)
 		row.Parent = cpList
 		Instance.new("UICorner", row).CornerRadius = UDim.new(0, 3)
 
-		local entry = { pos = pos, row = row }
-		checkpoints[id] = entry
+		local entry = { pos = pos, cframe = cf, row = row }
+		table.insert(checkpoints, entry)
 
 		local held = false
 		local holdTask = nil
@@ -90,7 +92,7 @@ return function(container, player, uis, rs)
 				warn("[N1V1LON DEBUG] CP #" .. id .. " hold detected, deleting...")
 				row.BackgroundColor3 = Color3.fromRGB(80, 40, 40)
 				task.delay(0.6, function()
-					row:Destroy()
+					if row and row.Parent then row:Destroy() end
 					for i, e in ipairs(checkpoints) do
 						if e == entry then table.remove(checkpoints, i); break end
 					end
@@ -103,9 +105,9 @@ return function(container, player, uis, rs)
 			if not held then
 				warn("[N1V1LON DEBUG] TP to CP #" .. id)
 				local c = player.Character
-				if c then
-					local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")
-					if r then r.Position = entry.pos end
+				local r = c and (c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso"))
+				if r then
+					r.CFrame = entry.cframe
 				end
 			end
 		end)
