@@ -130,6 +130,37 @@ local function langApply()
 	end
 end
 
+local function makeDraggable(obj, target)
+	target = target or obj
+	local dragging, dragStart, startPos
+	local dragConn
+
+	obj.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = target.Position
+
+			if dragConn then dragConn:Disconnect() end
+			dragConn = UserInputService.InputChanged:Connect(function(moveInput)
+				if moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch then
+					local delta = moveInput.Position - dragStart
+					target.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+				end
+			end)
+
+			local releaseConn
+			releaseConn = input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+					if dragConn then dragConn:Disconnect(); dragConn = nil end
+					if releaseConn then releaseConn:Disconnect() end
+				end
+			end)
+		end
+	end)
+end
+
 -- ==================== GUI ROOT ====================
 local pg = player:WaitForChild("PlayerGui")
 local existing = pg:FindFirstChild("N1V1LON_BETA")
@@ -179,8 +210,8 @@ icon.Text = "N"
 icon.TextColor3 = Color3.fromRGB(220, 220, 255)
 icon.TextSize = 28
 icon.Font = Enum.Font.GothamBold
-icon.Draggable = true
 icon.Parent = gui
+makeDraggable(icon)
 Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 12)
 
 local betaTag = Instance.new("TextLabel")
@@ -212,6 +243,7 @@ titleBar.BackgroundColor3 = currentTheme.titleBarBg
 titleBar.BorderSizePixel = 0
 titleBar.Parent = menu
 themeRegister(titleBar, "BackgroundColor3", "titleBarBg")
+makeDraggable(titleBar, menu)
 
 local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(0, 100, 1, 0)
@@ -234,6 +266,9 @@ closeBtn.TextColor3 = Color3.fromRGB(200, 60, 60)
 closeBtn.TextSize = 18
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.Parent = titleBar
+
+closeBtn.MouseEnter:Connect(function() closeBtn.BackgroundTransparency = 0.8 end)
+closeBtn.MouseLeave:Connect(function() closeBtn.BackgroundTransparency = 1 end)
 
 closeBtn.MouseButton1Click:Connect(function() menu.Visible = false end)
 icon.MouseButton1Click:Connect(function() menu.Visible = not menu.Visible end)
@@ -260,7 +295,18 @@ local function createTab(name, key, index)
 	langRegister(key, btn)
 	themeRegister(btn, "TextColor3", "textDim")
 
+	btn.MouseEnter:Connect(function()
+		btn.TextColor3 = currentTheme.accentBlue
+	end)
+
 	local indicator = Instance.new("Frame")
+
+	btn.MouseLeave:Connect(function()
+		if not indicator.Visible then
+			btn.TextColor3 = currentTheme.textDim
+		end
+	end)
+
 	indicator.Size = UDim2.new(0.6, 0, 0, 2)
 	indicator.Position = UDim2.new(0.2, 0, 1, -2)
 	indicator.BackgroundColor3 = currentTheme.accentBlue
