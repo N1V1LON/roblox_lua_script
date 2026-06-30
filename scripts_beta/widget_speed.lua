@@ -32,15 +32,15 @@ return function(container, player, uis, rs)
 	spdStatus.Font = Enum.Font.GothamBold
 	spdStatus.Parent = spdBtn
 
-	local spdVal = Instance.new("TextLabel")
-	spdVal.Size = UDim2.new(0, 50, 0, 20)
-	spdVal.Position = UDim2.new(1, -105, 0, 4)
-	spdVal.BackgroundTransparency = 1
-	spdVal.Text = tostring(speedVal)
-	spdVal.TextColor3 = Color3.fromRGB(160, 200, 160)
-	spdVal.TextSize = 12
-	spdVal.Font = Enum.Font.GothamBold
-	spdVal.Parent = spdBtn
+	local spdValLabel = Instance.new("TextLabel")
+	spdValLabel.Size = UDim2.new(0, 50, 0, 20)
+	spdValLabel.Position = UDim2.new(1, -105, 0, 4)
+	spdValLabel.BackgroundTransparency = 1
+	spdValLabel.Text = tostring(speedVal)
+	spdValLabel.TextColor3 = Color3.fromRGB(160, 200, 160)
+	spdValLabel.TextSize = 12
+	spdValLabel.Font = Enum.Font.GothamBold
+	spdValLabel.Parent = spdBtn
 
 	local spdBg = Instance.new("TextButton")
 	spdBg.Size = UDim2.new(1, -20, 0, 10)
@@ -53,7 +53,7 @@ return function(container, player, uis, rs)
 	Instance.new("UICorner", spdBg).CornerRadius = UDim.new(0, 3)
 
 	local spdFill = Instance.new("Frame")
-	spdFill.Size = UDim2.new((speedVal - 16) / 100, 0, 1, 0)
+	spdFill.Size = UDim2.new(math.clamp((speedVal - 16) / 100, 0, 1), 0, 1, 0)
 	spdFill.BackgroundColor3 = Color3.fromRGB(60, 200, 120)
 	spdFill.BorderSizePixel = 0
 	spdFill.Parent = spdBg
@@ -66,20 +66,17 @@ return function(container, player, uis, rs)
 		if sizeX > 0 then
 			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
 			speedVal = math.floor(frac * 100 + 16)
-			spdVal.Text = tostring(speedVal)
+			spdValLabel.Text = tostring(speedVal)
 			spdFill.Size = UDim2.new(frac, 0, 1, 0)
-			warn("[N1V1LON DEBUG] Speed slider set to " .. speedVal)
 		end
 	end)
 
 	local function applySpeed()
 		if not speedOn then return end
-		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		local char = player.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
 		if hum then
 			hum.WalkSpeed = speedVal
-			warn("[N1V1LON DEBUG] Speed applied: " .. speedVal)
-		else
-			warn("[N1V1LON DEBUG] Speed: no Humanoid found")
 		end
 	end
 
@@ -98,11 +95,16 @@ return function(container, player, uis, rs)
 				speedHeartbeat:Disconnect()
 				speedHeartbeat = nil
 			end
-			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			local char = player.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
 			if hum then hum.WalkSpeed = 16 end
 			spdStatus.Text = "OFF"
 			spdStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
 			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Speed OFF") end
 		end
+	end)
+
+	table.insert(_G.N1V1LON.cleanup, function()
+		if speedHeartbeat then speedHeartbeat:Disconnect(); speedHeartbeat = nil end
 	end)
 end

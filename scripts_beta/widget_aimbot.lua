@@ -8,6 +8,10 @@ return function(container, player, uis, rs)
 	local spherePart = nil
 	local sphereConn = nil
 
+	local npcCache = {}
+	local lastScan = 0
+	local SCAN_COOLDOWN = 3
+
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, 0, 0, 106)
 	frame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
@@ -36,12 +40,13 @@ return function(container, player, uis, rs)
 	status.Font = Enum.Font.GothamBold
 	status.Parent = frame
 
-	local function makeSlider(yPos, label, getter, setter, maxVal, barColor, labelColor)
+	local function makeSlider(yPos, label, initialVal, setter, maxVal, barColor, labelColor)
+		local val = initialVal
 		local lbl = Instance.new("TextLabel")
 		lbl.Size = UDim2.new(0, 130, 0, 14)
 		lbl.Position = UDim2.new(0, 8, 0, yPos)
 		lbl.BackgroundTransparency = 1
-		lbl.Text = label .. getter()
+		lbl.Text = label .. tostring(val)
 		lbl.TextColor3 = labelColor
 		lbl.TextSize = 11
 		lbl.TextXAlignment = Enum.TextXAlignment.Left
@@ -59,7 +64,7 @@ return function(container, player, uis, rs)
 		Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
 
 		local fill = Instance.new("Frame")
-		fill.Size = UDim2.new(getter() / maxVal, 0, 1, 0)
+		fill.Size = UDim2.new(math.clamp(val / maxVal, 0, 1), 0, 1, 0)
 		fill.BackgroundColor3 = barColor
 		fill.BorderSizePixel = 0
 		fill.Parent = bar
@@ -71,10 +76,10 @@ return function(container, player, uis, rs)
 			local sx = bar.AbsoluteSize.X
 			if sx > 0 then
 				local frac = math.clamp((mx - px) / sx, 0, 1)
-				local val = math.max(1, math.floor(frac * maxVal))
+				val = math.max(1, math.floor(frac * maxVal))
 				if maxVal == 500 then val = math.max(5, val) end
 				setter(val)
-				lbl.Text = label .. getter()
+				lbl.Text = label .. tostring(val)
 				fill.Size = UDim2.new(frac, 0, 1, 0)
 			end
 		end)
@@ -82,9 +87,9 @@ return function(container, player, uis, rs)
 		return lbl, bar, fill
 	end
 
-	makeSlider(24, "Zone: ", function() return zoneRadius end, function(v) zoneRadius = v end, 500, Color3.fromRGB(60, 200, 120), Color3.fromRGB(160, 200, 160))
-	makeSlider(50, "Hits: ", function() return hitCount end, function(v) hitCount = v end, 50, Color3.fromRGB(200, 200, 100), Color3.fromRGB(200, 200, 100))
-	makeSlider(76, "Damage: ", function() return damagePower end, function(v) damagePower = v end, 100, Color3.fromRGB(200, 100, 100), Color3.fromRGB(200, 120, 120))
+	makeSlider(24, "Zone: ", zoneRadius, function(v) zoneRadius = v end, 500, Color3.fromRGB(60, 200, 120), Color3.fromRGB(160, 200, 160))
+	makeSlider(50, "Hits: ", hitCount, function(v) hitCount = v end, 50, Color3.fromRGB(200, 200, 100), Color3.fromRGB(200, 200, 100))
+	makeSlider(76, "Damage: ", damagePower, function(v) damagePower = v end, 100, Color3.fromRGB(200, 100, 100), Color3.fromRGB(200, 120, 120))
 
 	local function createSphere()
 		if spherePart then pcall(function() spherePart:Destroy() end) end
@@ -127,9 +132,7 @@ return function(container, player, uis, rs)
 		if parent:IsA("BasePart") then return parent.Position end
 		if parent.PrimaryPart then return parent.PrimaryPart.Position end
 		for _, child in ipairs(parent:GetChildren()) do
-			if child:IsA("BasePart") then
-				return child.Position
-			end
+			if child:IsA("BasePart") then return child.Position end
 		end
 		return nil
 	end
@@ -146,6 +149,19 @@ return function(container, player, uis, rs)
 		return false
 	end
 
+	local function scanWorkspace()
+		if tick() - lastScan < SCAN_COOLDOWN then return end
+		lastScan = tick()
+		local newCache = {}
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			if obj:IsA("Model") and inList(obj.Name) then
+				local hum = obj:FindFirstChildOfClass("Humanoid")
+				if hum then table.insert(newCache, {m = obj, h = hum}) end
+			end
+		end
+		npcCache = newCache
+	end
+
 	local function doAimbot()
 		local char = player.Character
 		if not char then return end
@@ -153,25 +169,24 @@ return function(container, player, uis, rs)
 		if not root then return end
 		local pos = root.Position
 
+		scanWorkspace()
 		local targets = {}
-		for _, obj in ipairs(workspace:GetDescendants()) do
-			if not obj:IsA("Model") then continue end
-			if not inList(obj.Name) then continue end
-			local hum = obj:FindFirstChildOfClass("Humanoid")
-			if not hum or hum.Health <= 0 then continue end
-			local npcPos = getNPCPos(obj)
-			if npcPos and (npcPos - pos).Magnitude <= zoneRadius then
-				table.insert(targets, hum)
+		for _, data in ipairs(npcCache) do
+			if data.m.Parent and data.h.Health > 0 then
+				local npcPos = getNPCPos(data.m)
+				if npcPos and (npcPos - pos).Magnitude <= zoneRadius then
+					table.insert(targets, data.h)
+				end
 			end
 		end
 
-		if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot: " .. #targets .. " NPC, " .. damagePower .. " dmg x" .. hitCount) end
-		for h = 1, hitCount do
-			for _, nhum in ipairs(targets) do
-				if nhum.Health > 0 then
-					nhum.Health = nhum.Health - damagePower
-					if nhum.Health <= 0 then
-						pcall(function() nhum:BreakJoints() end)
+		if #targets > 0 then
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot: hitting " .. #targets .. " targets") end
+			for h = 1, hitCount do
+				for _, nhum in ipairs(targets) do
+					if nhum.Health > 0 then
+						nhum.Health = nhum.Health - damagePower
+						if nhum.Health <= 0 then pcall(function() nhum:BreakJoints() end) end
 					end
 				end
 			end
@@ -180,11 +195,11 @@ return function(container, player, uis, rs)
 
 	status.MouseButton1Click:Connect(function()
 		aimOn = not aimOn
+		status.Text = aimOn and "ON" or "OFF"
+		status.TextColor3 = aimOn and Color3.fromRGB(60, 200, 120) or Color3.fromRGB(140, 60, 60)
 		if aimOn then
-			status.Text = "ON"
-			status.TextColor3 = Color3.fromRGB(60, 200, 120)
 			createSphere()
-			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot ON — zone " .. zoneRadius) end
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot ON") end
 			if aimConn then aimConn:Disconnect() end
 			aimConn = uis.InputBegan:Connect(function(input, processed)
 				if processed then return end
@@ -193,11 +208,14 @@ return function(container, player, uis, rs)
 				end
 			end)
 		else
-			status.Text = "OFF"
-			status.TextColor3 = Color3.fromRGB(140, 60, 60)
 			destroySphere()
 			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot OFF") end
 			if aimConn then aimConn:Disconnect(); aimConn = nil end
 		end
+	end)
+
+	table.insert(_G.N1V1LON.cleanup, function()
+		destroySphere()
+		if aimConn then aimConn:Disconnect() end
 	end)
 end
