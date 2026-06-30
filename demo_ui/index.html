@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>N1V1LON UI Demo</title>
+    <style>
+        body {
+            background-color: #0a0a0f;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #C8C8DC;
+            user-select: none;
+            touch-action: none;
+        }
+
+        #icon {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 48px;
+            height: 48px;
+            background-color: #1E1E2D;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #DCDCFF;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        #icon:hover { background-color: #28283C; }
+
+        #beta-tag {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            color: #64C8FF;
+            font-size: 11px;
+        }
+
+        #menu {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            height: 420px;
+            background-color: #14141E;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            z-index: 900;
+        }
+
+        #title-bar {
+            height: 36px;
+            background-color: #1E1E2D;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            cursor: move;
+        }
+
+        #title-text {
+            font-weight: bold;
+            font-size: 14px;
+            color: #DCDCFF;
+            flex-grow: 1;
+        }
+
+        #close-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #C83C3C;
+            font-size: 18px;
+            cursor: pointer;
+            margin-right: -12px;
+            transition: background 0.2s;
+        }
+        #close-btn:hover { background-color: rgba(255,255,255,0.1); }
+
+        #tabs {
+            height: 32px;
+            background-color: #1E1E2D;
+            display: flex;
+        }
+
+        .tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #7878A0;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+        }
+        .tab:hover { color: #64C8FF; }
+        .tab.active { color: #64C8FF; }
+
+        .indicator {
+            position: absolute;
+            bottom: 2px;
+            width: 60%;
+            height: 2px;
+            background-color: #64C8FF;
+            display: none;
+        }
+        .tab.active .indicator { display: block; }
+
+        #content {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .widget {
+            background-color: #232332;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .widget-title {
+            font-size: 13px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-toggle {
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .status-on { color: #3CC878; }
+        .status-off { color: #8C3C3C; }
+
+        .slider-bg {
+            height: 10px;
+            background-color: #3C3C50;
+            border-radius: 5px;
+            position: relative;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        .slider-fill {
+            height: 100%;
+            background-color: #3CC878;
+            border-radius: 5px;
+            width: 32%;
+        }
+
+        .cp-list {
+            max-height: 100px;
+            overflow-y: auto;
+            margin-top: 5px;
+        }
+        .cp-item {
+            background-color: #28283C;
+            padding: 4px 8px;
+            margin-bottom: 2px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+        .cp-item:hover { background-color: #323246; }
+
+        .btn-plus {
+            background: #323246;
+            border: none;
+            color: #A0C8A0;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 2px 6px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div id="icon">
+    N
+    <span id="beta-tag">β</span>
+</div>
+
+<div id="menu">
+    <div id="title-bar">
+        <div id="title-text">N1V1LON</div>
+        <div id="close-btn">✕</div>
+    </div>
+    <div id="tabs">
+        <div class="tab active" data-target="player">Player<div class="indicator"></div></div>
+        <div class="tab" data-target="server">Server<div class="indicator"></div></div>
+        <div class="tab" data-target="settings">Settings<div class="indicator"></div></div>
+    </div>
+    <div id="content">
+        <!-- Player Tab -->
+        <div id="player" class="tab-pane active">
+            <div class="widget">
+                <div class="widget-title">
+                    <span>Speed</span>
+                    <span class="status-toggle status-off">OFF</span>
+                </div>
+                <div class="slider-bg" id="speed-slider"><div class="slider-fill"></div></div>
+            </div>
+            <div class="widget">
+                <div class="widget-title">
+                    <span>Infinite Jump</span>
+                    <span class="status-toggle status-off">OFF</span>
+                </div>
+            </div>
+            <div class="widget">
+                <div class="widget-title">
+                    <span>Aimbot</span>
+                    <span class="status-toggle status-off">OFF</span>
+                </div>
+                <div class="slider-bg" id="aim-slider"><div class="slider-fill" style="width: 50%; background-color: #64C8FF;"></div></div>
+            </div>
+        </div>
+
+        <!-- Server Tab -->
+        <div id="server" class="tab-pane">
+            <div class="widget">
+                <div class="widget-title">
+                    <span>Checkpoints</span>
+                    <button class="btn-plus" id="add-cp">+</button>
+                </div>
+                <div class="cp-list" id="cp-list">
+                    <!-- Items added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-pane">
+            <div class="widget">
+                <div class="widget-title">Language</div>
+                <div style="display: flex; gap: 5px;">
+                    <div style="flex:1; background:#3C3C50; padding:5px; text-align:center; border-radius:4px; font-size:12px; cursor:pointer;">Русский</div>
+                    <div style="flex:1; background:#28283C; padding:5px; text-align:center; border-radius:4px; font-size:12px; cursor:pointer;">English</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const icon = document.getElementById('icon');
+    const menu = document.getElementById('menu');
+    const closeBtn = document.getElementById('close-btn');
+    const titleBar = document.getElementById('title-bar');
+    const tabs = document.querySelectorAll('.tab');
+    const panes = document.querySelectorAll('.tab-pane');
+
+    // Toggle Menu
+    icon.onclick = () => {
+        menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+    };
+    closeBtn.onclick = () => menu.style.display = 'none';
+
+    // Tab Switching
+    tabs.forEach(tab => {
+        tab.onclick = () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            panes.forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.target).classList.add('active');
+        };
+    });
+
+    // SMOOTH Draggable Logic (Roblox-like)
+    function makeDraggable(handle, target) {
+        target = target || handle;
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+
+        const onStart = (e) => {
+            if (e.target === closeBtn || e.target.classList.contains('status-toggle')) return;
+            isDragging = true;
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+
+            const rect = target.getBoundingClientRect();
+            // Store initial position relative to the translate(-50%, -50%)
+            startX = clientX;
+            startY = clientY;
+            initialX = rect.left + rect.width / 2;
+            initialY = rect.top + rect.height / 2;
+        };
+
+        const onMove = (e) => {
+            if (!isDragging) return;
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+
+            target.style.left = (initialX + dx) + 'px';
+            target.style.top = (initialY + dy) + 'px';
+            target.style.transform = 'translate(-50%, -50%)';
+        };
+
+        const onEnd = () => isDragging = false;
+
+        handle.addEventListener('mousedown', onStart);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+
+        handle.addEventListener('touchstart', onStart, {passive: false});
+        document.addEventListener('touchmove', onMove, {passive: false});
+        document.addEventListener('touchend', onEnd);
+    }
+
+    makeDraggable(icon);
+    makeDraggable(titleBar, menu);
+
+    // Slider Logic (Drag and Click)
+    function initSlider(sliderId) {
+        const slider = document.getElementById(sliderId);
+        const fill = slider.querySelector('.slider-fill');
+        let isAdjusting = false;
+
+        const update = (e) => {
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const rect = slider.getBoundingClientRect();
+            const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            fill.style.width = (frac * 100) + '%';
+        };
+
+        slider.onmousedown = (e) => { isAdjusting = true; update(e); };
+        slider.ontouchstart = (e) => { isAdjusting = true; update(e); };
+
+        document.addEventListener('mousemove', (e) => { if(isAdjusting) update(e); });
+        document.addEventListener('touchmove', (e) => { if(isAdjusting) update(e); });
+        document.addEventListener('mouseup', () => isAdjusting = false);
+        document.addEventListener('touchend', () => isAdjusting = false);
+    }
+
+    initSlider('speed-slider');
+    initSlider('aim-slider');
+
+    // Toggles
+    document.querySelectorAll('.status-toggle').forEach(t => {
+        t.onclick = () => {
+            const isOn = t.classList.contains('status-on');
+            t.innerText = isOn ? 'OFF' : 'ON';
+            t.className = `status-toggle status-${isOn ? 'off' : 'on'}`;
+        };
+    });
+
+    // Checkpoints
+    const addCp = document.getElementById('add-cp');
+    const cpList = document.getElementById('cp-list');
+    let cpCount = 0;
+
+    addCp.onclick = () => {
+        cpCount++;
+        const item = document.createElement('div');
+        item.className = 'cp-item';
+        item.innerHTML = `<span>CP${cpCount} (124, 65, -890)</span><span>TP</span>`;
+        cpList.appendChild(item);
+    };
+</script>
+
+</body>
+</html>

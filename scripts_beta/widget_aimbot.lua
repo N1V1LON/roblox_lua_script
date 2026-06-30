@@ -1,221 +1,213 @@
 return function(container, player, uis, rs)
-	warn("[N1V1LON DEBUG] Aimbot widget loaded")
-	local aimOn = false
-	local zoneRadius = 50
-	local hitCount = 5
-	local damagePower = 15
-	local aimConn = nil
-	local spherePart = nil
-	local sphereConn = nil
+	warn("[N1V1LON] Aimbot (Senior Edition) loading...")
+
+	-- Dependencies & Constants
+	local Camera = workspace.CurrentCamera
+	local CollectionService = game:GetService("CollectionService")
+
+	-- State
+	local state = {
+		enabled = false,
+		radius = 150,
+		smoothness = 0.15,
+		visibleCheck = true,
+		target = nil
+	}
 
 	local npcCache = {}
 	local lastScan = 0
-	local SCAN_COOLDOWN = 3
+	local SCAN_INTERVAL = 2
 
+	-- UI Construction
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 0, 106)
-	frame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	frame.Size = UDim2.new(1, 0, 0, 140)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 	frame.BorderSizePixel = 0
 	frame.Parent = container
-	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(0, 120, 0, 20)
+	title.Size = UDim2.new(1, -16, 0, 24)
 	title.Position = UDim2.new(0, 8, 0, 4)
 	title.BackgroundTransparency = 1
-	title.Text = "  Aimbot"
-	title.TextColor3 = Color3.fromRGB(200, 200, 220)
-	title.TextSize = 13
+	title.Text = "Aimbot & Combat"
+	title.TextColor3 = Color3.fromRGB(220, 220, 255)
+	title.TextSize = 14
+	title.Font = Enum.Font.GothamBold
 	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.Font = Enum.Font.Gotham
 	title.Parent = frame
 
 	local status = Instance.new("TextButton")
-	status.Size = UDim2.new(0, 50, 0, 20)
-	status.Position = UDim2.new(1, -55, 0, 4)
-	status.BackgroundTransparency = 1
+	status.Size = UDim2.new(0, 60, 0, 20)
+	status.Position = UDim2.new(1, -68, 0, 6)
+	status.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
 	status.Text = "OFF"
-	status.TextColor3 = Color3.fromRGB(140, 60, 60)
-	status.TextSize = 12
+	status.TextColor3 = Color3.fromRGB(200, 80, 80)
 	status.Font = Enum.Font.GothamBold
+	status.TextSize = 12
 	status.Parent = frame
+	Instance.new("UICorner", status).CornerRadius = UDim.new(0, 4)
 
-	local function makeSlider(yPos, label, initialVal, setter, maxVal, barColor, labelColor)
-		local val = initialVal
+	local function makeSlider(yPos, label, initial, min, max, callback)
+		local val = initial
 		local lbl = Instance.new("TextLabel")
-		lbl.Size = UDim2.new(0, 130, 0, 14)
-		lbl.Position = UDim2.new(0, 8, 0, yPos)
+		lbl.Size = UDim2.new(1, -20, 0, 16)
+		lbl.Position = UDim2.new(0, 10, 0, yPos)
 		lbl.BackgroundTransparency = 1
-		lbl.Text = label .. tostring(val)
-		lbl.TextColor3 = labelColor
+		lbl.Text = label .. ": " .. string.format("%.2f", val)
+		lbl.TextColor3 = Color3.fromRGB(180, 180, 200)
 		lbl.TextSize = 11
-		lbl.TextXAlignment = Enum.TextXAlignment.Left
 		lbl.Font = Enum.Font.Gotham
+		lbl.TextXAlignment = Enum.TextXAlignment.Left
 		lbl.Parent = frame
 
-		local bar = Instance.new("TextButton")
-		bar.Size = UDim2.new(1, -20, 0, 8)
-		bar.Position = UDim2.new(0, 10, 0, yPos + 16)
-		bar.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-		bar.BorderSizePixel = 0
-		bar.Text = ""
-		bar.AutoButtonColor = false
-		bar.Parent = frame
-		Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
+		local bg = Instance.new("Frame")
+		bg.Size = UDim2.new(1, -20, 0, 6)
+		bg.Position = UDim2.new(0, 10, 0, yPos + 18)
+		bg.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+		bg.BorderSizePixel = 0
+		bg.Parent = frame
+		Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 3)
 
 		local fill = Instance.new("Frame")
-		fill.Size = UDim2.new(math.clamp(val / maxVal, 0, 1), 0, 1, 0)
-		fill.BackgroundColor3 = barColor
+		fill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0)
+		fill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
 		fill.BorderSizePixel = 0
-		fill.Parent = bar
+		fill.Parent = bg
 		Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 3)
 
-		bar.MouseButton1Click:Connect(function()
-			local mx = uis:GetMouseLocation().X
-			local px = bar.AbsolutePosition.X
-			local sx = bar.AbsoluteSize.X
-			if sx > 0 then
-				local frac = math.clamp((mx - px) / sx, 0, 1)
-				val = math.max(1, math.floor(frac * maxVal))
-				if maxVal == 500 then val = math.max(5, val) end
-				setter(val)
-				lbl.Text = label .. tostring(val)
-				fill.Size = UDim2.new(frac, 0, 1, 0)
-			end
-		end)
+		local function update(input)
+			local pos = math.clamp((input.Position.X - bg.AbsolutePosition.X) / bg.AbsoluteSize.X, 0, 1)
+			val = min + (pos * (max - min))
+			fill.Size = UDim2.new(pos, 0, 1, 0)
+			lbl.Text = label .. ": " .. string.format("%.2f", val)
+			callback(val)
+		end
 
-		return lbl, bar, fill
-	end
+		bg.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				local moveConn, endConn
 
-	makeSlider(24, "Zone: ", zoneRadius, function(v) zoneRadius = v end, 500, Color3.fromRGB(60, 200, 120), Color3.fromRGB(160, 200, 160))
-	makeSlider(50, "Hits: ", hitCount, function(v) hitCount = v end, 50, Color3.fromRGB(200, 200, 100), Color3.fromRGB(200, 200, 100))
-	makeSlider(76, "Damage: ", damagePower, function(v) damagePower = v end, 100, Color3.fromRGB(200, 100, 100), Color3.fromRGB(200, 120, 120))
+				moveConn = uis.InputChanged:Connect(function(move)
+					if move.UserInputType == Enum.UserInputType.MouseMovement or move.UserInputType == Enum.UserInputType.Touch then
+						update(move)
+					end
+				end)
 
-	local function createSphere()
-		if spherePart then pcall(function() spherePart:Destroy() end) end
-		spherePart = Instance.new("Part")
-		spherePart.Name = "N1V1LON_Sphere"
-		spherePart.Shape = Enum.PartType.Ball
-		spherePart.Size = Vector3.new(zoneRadius * 2, zoneRadius * 2, zoneRadius * 2)
-		spherePart.Anchored = true
-		spherePart.CanCollide = false
-		spherePart.Transparency = 0.85
-		spherePart.Color = Color3.fromRGB(100, 200, 255)
-		spherePart.Material = Enum.Material.Neon
-		spherePart.Parent = workspace
+				endConn = uis.InputEnded:Connect(function(endInput)
+					if endInput.UserInputType == Enum.UserInputType.MouseButton1 or endInput.UserInputType == Enum.UserInputType.Touch then
+						if moveConn then moveConn:Disconnect() end
+						if endConn then endConn:Disconnect() end
+					end
+				end)
 
-		if sphereConn then sphereConn:Disconnect() end
-		sphereConn = rs.RenderStepped:Connect(function()
-			if not aimOn or not spherePart then
-				if sphereConn then sphereConn:Disconnect(); sphereConn = nil end
-				return
-			end
-			local char = player.Character
-			if char then
-				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-				if root then
-					spherePart.Position = root.Position
-					spherePart.Size = Vector3.new(zoneRadius * 2, zoneRadius * 2, zoneRadius * 2)
-				end
+				update(input)
 			end
 		end)
 	end
 
-	local function destroySphere()
-		if sphereConn then sphereConn:Disconnect(); sphereConn = nil end
-		if spherePart then pcall(function() spherePart:Destroy() end); spherePart = nil end
-	end
+	makeSlider(35, "FOV Radius", state.radius, 10, 500, function(v) state.radius = v end)
+	makeSlider(70, "Smoothness", state.smoothness, 0.01, 1, function(v) state.smoothness = v end)
 
-	local function getNPCPos(parent)
-		local r = parent:FindFirstChild("HumanoidRootPart") or parent:FindFirstChild("Torso")
-		if r then return r.Position end
-		if parent:IsA("BasePart") then return parent.Position end
-		if parent.PrimaryPart then return parent.PrimaryPart.Position end
-		for _, child in ipairs(parent:GetChildren()) do
-			if child:IsA("BasePart") then return child.Position end
-		end
-		return nil
-	end
-
-	local npcNames = {
-		"Alpha Wolf", "Wolf", "Crossbow Cultist", "Cultist",
-		"Bunny", "Bear", "Polar Bear",
-	}
-
-	local function inList(name)
-		for _, v in ipairs(npcNames) do
-			if v == name then return true end
-		end
-		return false
-	end
-
-	local function scanWorkspace()
-		if tick() - lastScan < SCAN_COOLDOWN then return end
-		lastScan = tick()
-		local newCache = {}
-		for _, obj in ipairs(workspace:GetDescendants()) do
-			if obj:IsA("Model") and inList(obj.Name) then
-				local hum = obj:FindFirstChildOfClass("Humanoid")
-				if hum then table.insert(newCache, {m = obj, h = hum}) end
-			end
-		end
-		npcCache = newCache
-	end
-
-	local function doAimbot()
+	-- Logic Functions
+	local function isVisible(part)
+		if not state.visibleCheck then return true end
 		local char = player.Character
-		if not char then return end
-		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-		if not root then return end
-		local pos = root.Position
+		if not char then return false end
 
-		scanWorkspace()
-		local targets = {}
-		for _, data in ipairs(npcCache) do
-			if data.m.Parent and data.h.Health > 0 then
-				local npcPos = getNPCPos(data.m)
-				if npcPos and (npcPos - pos).Magnitude <= zoneRadius then
-					table.insert(targets, data.h)
+		local origin = Camera.CFrame.Position
+		local dest = part.Position
+		local direction = dest - origin
+
+		local params = RaycastParams.new()
+		params.FilterDescendantsInstances = {char, part.Parent}
+		params.FilterType = Enum.RaycastFilterType.Exclude
+
+		local result = workspace:Raycast(origin, direction, params)
+		return result == nil
+	end
+
+	local function getNPCPart(model)
+		return model:FindFirstChild("Head") or model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+	end
+
+	local function scanNPCs()
+		if tick() - lastScan < SCAN_INTERVAL then return end
+		lastScan = tick()
+
+		local found = {}
+		-- Optimization: Scanning only Players to avoid workspace:GetDescendants()
+		for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+			if p ~= player and p.Character then
+				local hum = p.Character:FindFirstChildOfClass("Humanoid")
+				local root = getNPCPart(p.Character)
+				if hum and hum.Health > 0 and root then
+					table.insert(found, {h = hum, p = root})
 				end
 			end
 		end
 
-		if #targets > 0 then
-			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot: hitting " .. #targets .. " targets") end
-			for h = 1, hitCount do
-				for _, nhum in ipairs(targets) do
-					if nhum.Health > 0 then
-						nhum.Health = nhum.Health - damagePower
-						if nhum.Health <= 0 then pcall(function() nhum:BreakJoints() end) end
+		-- Optional: Scan workspace folder "NPCs" if it exists
+		local npcFolder = workspace:FindFirstChild("NPCs")
+		if npcFolder then
+			for _, v in ipairs(npcFolder:GetChildren()) do
+				local hum = v:FindFirstChildOfClass("Humanoid")
+				local root = getNPCPart(v)
+				if hum and hum.Health > 0 and root then
+					table.insert(found, {h = hum, p = root})
+				end
+			end
+		end
+
+		npcCache = found
+	end
+
+	local function getClosestTarget()
+		local char = player.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		if not root then return nil end
+
+		scanNPCs()
+
+		local closest = nil
+		local minDist = state.radius
+
+		for _, data in ipairs(npcCache) do
+			if data.h.Parent and data.h.Health > 0 then
+				local pos, onScreen = Camera:WorldToViewportPoint(data.p.Position)
+				if onScreen then
+					local mousePos = uis:GetMouseLocation()
+					local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+					if dist < minDist and isVisible(data.p) then
+						closest = data.p
+						minDist = dist
 					end
 				end
 			end
 		end
+		return closest
 	end
 
-	status.MouseButton1Click:Connect(function()
-		aimOn = not aimOn
-		status.Text = aimOn and "ON" or "OFF"
-		status.TextColor3 = aimOn and Color3.fromRGB(60, 200, 120) or Color3.fromRGB(140, 60, 60)
-		if aimOn then
-			createSphere()
-			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot ON") end
-			if aimConn then aimConn:Disconnect() end
-			aimConn = uis.InputBegan:Connect(function(input, processed)
-				if processed then return end
-				if aimOn and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-					doAimbot()
-				end
-			end)
-		else
-			destroySphere()
-			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot OFF") end
-			if aimConn then aimConn:Disconnect(); aimConn = nil end
+	-- Runtime Loop
+	local aimLoop = rs.RenderStepped:Connect(function()
+		if not state.enabled then return end
+
+		state.target = getClosestTarget()
+		if state.target then
+			local currentCF = Camera.CFrame
+			local targetCF = CFrame.new(currentCF.Position, state.target.Position)
+			Camera.CFrame = currentCF:Lerp(targetCF, state.smoothness)
 		end
 	end)
 
+	status.MouseButton1Click:Connect(function()
+		state.enabled = not state.enabled
+		status.Text = state.enabled and "ON" or "OFF"
+		status.TextColor3 = state.enabled and Color3.fromRGB(100, 220, 120) or Color3.fromRGB(200, 80, 80)
+		if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Aimbot: " .. (state.enabled and "Enabled" or "Disabled")) end
+	end)
+
 	table.insert(_G.N1V1LON.cleanup, function()
-		destroySphere()
-		if aimConn then aimConn:Disconnect() end
+		aimLoop:Disconnect()
 	end)
 end
