@@ -321,6 +321,37 @@ local ok, err = pcall(function()
 	title.Parent = titleBar
 	themeRegister(title, "TextColor3", "textTitle")
 
+	-- Dragging logic
+	local dragging = false
+	local dragInput, dragStart, startPos
+
+	titleBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = menu.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	titleBar.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input == dragInput then
+			local delta = input.Position - dragStart
+			menu.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
 	local betaBtn = Instance.new("TextButton")
 	betaBtn.Size = UDim2.new(0, 26, 1, 0)
 	betaBtn.Position = UDim2.new(1, -90, 0, 0)
@@ -870,8 +901,9 @@ local ok, err = pcall(function()
 
 		table.insert(sliderUpdates, updateSliderText)
 
-		bar.MouseButton1Click:Connect(function()
-			local mx = UserInputService:GetMouseLocation().X
+		local sliding = false
+		local function updateSlider(input)
+			local mx = input.Position.X
 			local px = bar.AbsolutePosition.X
 			local sx = bar.AbsoluteSize.X
 			if sx > 0 then
@@ -880,6 +912,25 @@ local ok, err = pcall(function()
 				if maxVal == 500 then val = math.max(5, val) end
 				setter(val)
 				updateSliderText()
+			end
+		end
+
+		bar.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				sliding = true
+				updateSlider(input)
+			end
+		end)
+
+		UserInputService.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				sliding = false
+			end
+		end)
+
+		UserInputService.InputChanged:Connect(function(input)
+			if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+				updateSlider(input)
 			end
 		end)
 	end
