@@ -439,12 +439,11 @@ loadWidget("widget_farm.lua", frameServer)
 loadWidget("widget_checkpoints.lua", frameServer)
 
 -- ==================== OPTIMIZATION TAB ====================
-local optContainer = Instance.new("Frame")
-optContainer.Size = UDim2.new(1, 0, 1, 0)
-optContainer.BackgroundTransparency = 1
-optContainer.Parent = frameOptimization
-
 local function buildOptUI()
+	for _, v in ipairs(frameOptimization:GetChildren()) do
+		if not v:IsA("UIListLayout") then v:Destroy() end
+	end
+
 	local optState = {
 		fps = false, fog = false, clouds = false,
 		particles = false, charVis = false, graphics = 3,
@@ -475,7 +474,7 @@ local function buildOptUI()
 		f.Size = UDim2.new(1, 0, 0, 44)
 		f.BackgroundColor3 = currentTheme.widgetBg
 		f.BorderSizePixel = 0
-		f.Parent = optContainer
+		f.Parent = frameOptimization
 		Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
 		themeRegister(f, "BackgroundColor3", "widgetBg")
 
@@ -528,7 +527,7 @@ local function buildOptUI()
 	gfx.Size = UDim2.new(1, 0, 0, 44)
 	gfx.BackgroundColor3 = currentTheme.widgetBg
 	gfx.BorderSizePixel = 0
-	gfx.Parent = optContainer
+	gfx.Parent = frameOptimization
 	Instance.new("UICorner", gfx).CornerRadius = UDim.new(0, 6)
 	themeRegister(gfx, "BackgroundColor3", "widgetBg")
 
@@ -591,17 +590,16 @@ local function buildOptUI()
 	local resetBtn = Instance.new("TextButton")
 	resetBtn.Size = UDim2.new(1, -16, 0, 32)
 	resetBtn.BackgroundColor3 = currentTheme.btnBg
-	resetBtn.Text = "⟲  " .. currentLang.off
+	resetBtn.Text = "⟲  Reset"
 	resetBtn.TextColor3 = currentTheme.textMain
 	resetBtn.TextSize = 14
 	resetBtn.Font = Enum.Font.GothamBold
-	resetBtn.Parent = optContainer
+	resetBtn.Parent = frameOptimization
 	Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0, 6)
 	themeRegister(resetBtn, "BackgroundColor3", "btnBg")
 	themeRegister(resetBtn, "TextColor3", "textMain")
 
 	resetBtn.MouseButton1Click:Connect(function()
-		for _, v in ipairs(optContainer:GetChildren()) do v:Destroy() end
 		settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
 		game:GetService("Lighting").FogEnd = 100000
 		local t = workspace:FindFirstChildOfClass("Terrain")
