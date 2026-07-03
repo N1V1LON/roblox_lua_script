@@ -108,6 +108,7 @@ local T = {
 		clouds = "Облака",
 		particles = "Частицы",
 		charVis = "Прозрачность персонажа",
+		reset = "Сброс",
 		on = "ВКЛ",
 		off = "ВЫКЛ",
 	},
@@ -128,6 +129,7 @@ local T = {
 		clouds = "Clouds",
 		particles = "Particles",
 		charVis = "Character Transparency",
+		reset = "Reset",
 		on = "ON",
 		off = "OFF",
 	},
@@ -451,7 +453,14 @@ local originalOpt = {
 	globalShadows = game:GetService("Lighting").GlobalShadows,
 	quality = settings().Rendering.QualityLevel,
 	particles = {},
+	cloudsEnabled = true,
 }
+
+do
+	local terrain = workspace:FindFirstChildOfClass("Terrain")
+	local clouds = terrain and terrain:FindFirstChildOfClass("Clouds")
+	if clouds then originalOpt.cloudsEnabled = clouds.Enabled end
+end
 
 local function setClouds(enabled)
 	local terrain = workspace:FindFirstChildOfClass("Terrain")
@@ -473,7 +482,7 @@ local function resetOptimization()
 	lighting.FogEnd = originalOpt.fogEnd
 	lighting.GlobalShadows = originalOpt.globalShadows
 	settings().Rendering.QualityLevel = originalOpt.quality
-	setClouds(true)
+	setClouds(originalOpt.cloudsEnabled)
 	for obj, enabled in pairs(originalOpt.particles) do
 		if obj and obj.Parent then obj.Enabled = enabled end
 	end
@@ -485,7 +494,15 @@ local function resetOptimization()
 	end
 end
 
-local function buildOptUI()
+local buildOptUI
+
+local function refreshOptimizationUI()
+	if frameOptimization and frameOptimization.Parent then
+		buildOptUI()
+	end
+end
+
+buildOptUI = function()
 	for _, v in ipairs(frameOptimization:GetChildren()) do
 		if not v:IsA("UIListLayout") then v:Destroy() end
 	end
@@ -548,18 +565,44 @@ local function buildOptUI()
 		stat.TextSize = 11
 		stat.Font = Enum.Font.GothamBold
 		stat.Parent = f
+		themeRegister(stat, "TextColor3", "statusOff")
+
+		local toggleBg = Instance.new("Frame")
+		toggleBg.Size = UDim2.new(0, 54, 0, 24)
+		toggleBg.Position = UDim2.new(1, -64, 0.5, -12)
+		toggleBg.BackgroundColor3 = currentTheme.btnBg
+		toggleBg.BorderSizePixel = 0
+		toggleBg.Parent = f
+		Instance.new("UICorner", toggleBg).CornerRadius = UDim.new(0, 12)
+		themeRegister(toggleBg, "BackgroundColor3", "btnBg")
+
+		local knob = Instance.new("Frame")
+		knob.Size = UDim2.new(0, 18, 0, 18)
+		knob.Position = UDim2.new(0, 3, 0.5, -9)
+		knob.BackgroundColor3 = currentTheme.textMain
+		knob.BorderSizePixel = 0
+		knob.Parent = toggleBg
+		Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+		themeRegister(knob, "BackgroundColor3", "textMain")
 
 		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(0, 40, 0, 20)
-		btn.Position = UDim2.new(1, -50, 0, 12)
+		btn.Size = UDim2.new(0, 64, 1, 0)
+		btn.Position = UDim2.new(1, -64, 0, 0)
 		btn.BackgroundTransparency = 1
 		btn.Text = ""
 		btn.Parent = f
-		btn.MouseButton1Click:Connect(function()
-			optState[name] = not optState[name]
-			local on = optState[name]
+
+		local function syncToggleVisual(on)
 			stat.Text = on and currentLang.on or currentLang.off
 			stat.TextColor3 = on and currentTheme.statusOn or currentTheme.statusOff
+			toggleBg.BackgroundColor3 = on and currentTheme.btnActiveBg or currentTheme.btnBg
+			knob.Position = on and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+		end
+
+		syncToggleVisual(false)
+		btn.MouseButton1Click:Connect(function()
+			optState[name] = not optState[name]
+			syncToggleVisual(optState[name])
 			applyOpt(name)
 		end)
 	end
@@ -634,7 +677,7 @@ local function buildOptUI()
 	local resetBtn = Instance.new("TextButton")
 	resetBtn.Size = UDim2.new(1, -16, 0, 32)
 	resetBtn.BackgroundColor3 = currentTheme.btnBg
-	resetBtn.Text = "Reset"
+	resetBtn.Text = currentLang.reset
 	resetBtn.TextColor3 = currentTheme.textMain
 	resetBtn.TextSize = 14
 	resetBtn.Font = Enum.Font.GothamBold
@@ -652,6 +695,10 @@ local function buildOptUI()
 end
 
 buildOptUI()
+
+table.insert(_G.N1V1LON.cleanup, function()
+	resetOptimization()
+end)
 
 -- ==================== SETTINGS TAB ====================
 local function createSettingGroup(titleKey, parent)
@@ -703,6 +750,7 @@ Instance.new("UICorner", btnEn).CornerRadius = UDim.new(0, 4)
 btnRu.MouseButton1Click:Connect(function()
 	settings.language = "ru"
 	langApply()
+	refreshOptimizationUI()
 	saveSettings()
 	btnRu.BackgroundColor3 = currentTheme.btnActiveBg
 	btnEn.BackgroundColor3 = currentTheme.btnBg
@@ -711,6 +759,7 @@ end)
 btnEn.MouseButton1Click:Connect(function()
 	settings.language = "en"
 	langApply()
+	refreshOptimizationUI()
 	saveSettings()
 	btnEn.BackgroundColor3 = currentTheme.btnActiveBg
 	btnRu.BackgroundColor3 = currentTheme.btnBg
@@ -741,6 +790,7 @@ langRegister("light", btnLight)
 btnDark.MouseButton1Click:Connect(function()
 	settings.theme = "dark"
 	themeApply()
+	refreshOptimizationUI()
 	saveSettings()
 	btnDark.BackgroundColor3 = currentTheme.btnActiveBg
 	btnLight.BackgroundColor3 = currentTheme.btnBg
@@ -749,6 +799,7 @@ end)
 btnLight.MouseButton1Click:Connect(function()
 	settings.theme = "light"
 	themeApply()
+	refreshOptimizationUI()
 	saveSettings()
 	btnLight.BackgroundColor3 = currentTheme.btnActiveBg
 	btnDark.BackgroundColor3 = currentTheme.btnBg
