@@ -44,12 +44,16 @@ return function(container, player, uis, rs)
 	cpList.BorderSizePixel = 0
 	cpList.ScrollBarThickness = 3
 	cpList.CanvasSize = UDim2.new(0, 0, 0, 0)
-	cpList.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	cpList.Parent = cpFrame
 	local cpLayout = Instance.new("UIListLayout")
 	cpLayout.FillDirection = Enum.FillDirection.Vertical
 	cpLayout.Padding = UDim.new(0, 2)
 	cpLayout.Parent = cpList
+	local function updateCPCanvas()
+		cpList.CanvasSize = UDim2.new(0, 0, 0, cpLayout.AbsoluteContentSize.Y)
+	end
+	cpLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCPCanvas)
+	task.spawn(updateCPCanvas)
 
 	local function addCP()
 		local char = player.Character

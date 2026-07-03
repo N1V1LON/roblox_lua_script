@@ -161,6 +161,9 @@ local function makeDraggable(obj, target)
 	end)
 end
 
+-- ==================== SAFE EXECUTION ====================
+local ok, err = pcall(function()
+
 -- ==================== GUI ROOT ====================
 local pg = player:WaitForChild("PlayerGui")
 local existing = pg:FindFirstChild("N1V1LON_BETA")
@@ -337,12 +340,16 @@ local function createContentFrame()
 	f.ScrollBarThickness = 2
 	f.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
 	f.CanvasSize = UDim2.new(0, 0, 0, 0)
-	f.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	f.Visible = false
 	f.Parent = content
 	local layout = Instance.new("UIListLayout")
 	layout.Padding = UDim.new(0, 8)
 	layout.Parent = f
+	local function updateCanvas()
+		f.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+	end
+	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+	task.spawn(updateCanvas)
 	return f
 end
 
@@ -536,3 +543,9 @@ langRegister("build", buildLabel)
 -- ==================== FINAL ====================
 addLog("Interface v2.2 Beta Loaded")
 _G.N1V1LON.showMsg("N1V1LON Beta Loaded")
+
+end) -- pcall
+
+if not ok then
+	warn("N1V1LON Beta error: " .. tostring(err))
+end
