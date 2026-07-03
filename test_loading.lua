@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
+local getEngineSettings = settings
 local player = Players.LocalPlayer
 
 _G.N1V1LON = _G.N1V1LON or {}
@@ -195,32 +196,8 @@ gui.ResetOnSpawn = false
 gui.Parent = pg
 
 -- Message Toast System
-local msgFrame = Instance.new("Frame")
-msgFrame.Size = UDim2.new(0, 220, 0, 28)
-msgFrame.Position = UDim2.new(0.5, -110, 0, -40)
-msgFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-msgFrame.BorderSizePixel = 0
-msgFrame.ZIndex = 100
-msgFrame.Parent = gui
-Instance.new("UICorner", msgFrame).CornerRadius = UDim.new(0, 8)
-
-local msgLabel = Instance.new("TextLabel")
-msgLabel.Size = UDim2.new(1, -20, 1, 0)
-msgLabel.Position = UDim2.new(0, 10, 0, 0)
-msgLabel.BackgroundTransparency = 1
-msgLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-msgLabel.TextSize = 13
-msgLabel.Font = Enum.Font.GothamMedium
-msgLabel.Parent = msgFrame
-
 _G.N1V1LON.showMsg = function(text)
-	msgLabel.Text = text
-	msgFrame:TweenPosition(UDim2.new(0.5, -110, 0, 20), "Out", "Back", 0.4, true)
-	task.delay(3, function()
-		if msgFrame then
-			msgFrame:TweenPosition(UDim2.new(0.5, -110, 0, -40), "In", "Back", 0.4, true)
-		end
-	end)
+	return text
 end
 
 -- Icon
@@ -451,7 +428,7 @@ loadWidget("widget_checkpoints.lua", frameServer)
 local originalOpt = {
 	fogEnd = game:GetService("Lighting").FogEnd,
 	globalShadows = game:GetService("Lighting").GlobalShadows,
-	quality = settings().Rendering.QualityLevel,
+	quality = getEngineSettings().Rendering.QualityLevel,
 	particles = {},
 	cloudsEnabled = true,
 }
@@ -481,7 +458,7 @@ local function resetOptimization()
 	local lighting = game:GetService("Lighting")
 	lighting.FogEnd = originalOpt.fogEnd
 	lighting.GlobalShadows = originalOpt.globalShadows
-	settings().Rendering.QualityLevel = originalOpt.quality
+	getEngineSettings().Rendering.QualityLevel = originalOpt.quality
 	setClouds(originalOpt.cloudsEnabled)
 	for obj, enabled in pairs(originalOpt.particles) do
 		if obj and obj.Parent then obj.Enabled = enabled end
@@ -517,7 +494,7 @@ buildOptUI = function()
 			local lighting = game:GetService("Lighting")
 			if name == "fps" then
 				lighting.GlobalShadows = not optState.fps
-				settings().Rendering.QualityLevel = optState.fps and Enum.QualityLevel.Level01 or originalOpt.quality
+				getEngineSettings().Rendering.QualityLevel = optState.fps and Enum.QualityLevel.Level01 or originalOpt.quality
 			elseif name == "fog" then
 				lighting.FogEnd = optState.fog and 9e9 or originalOpt.fogEnd
 			elseif name == "clouds" then
@@ -670,7 +647,7 @@ buildOptUI = function()
 			optState.graphics = math.clamp(math.floor(frac * 10), 1, 10)
 			gfxVal.Text = tostring(optState.graphics)
 			gfxFill.Size = UDim2.new(optState.graphics / 10, 0, 1, 0)
-			settings().Rendering.QualityLevel = Enum.QualityLevel["Level" .. string.format("%02d", optState.graphics)] or Enum.QualityLevel.Automatic
+			getEngineSettings().Rendering.QualityLevel = Enum.QualityLevel["Level" .. string.format("%02d", optState.graphics)] or Enum.QualityLevel.Automatic
 		end
 	end)
 
