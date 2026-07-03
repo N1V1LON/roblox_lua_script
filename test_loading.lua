@@ -95,23 +95,41 @@ local T = {
 		player = "Игрок",
 		server = "Сервер",
 		settings = "Настройки",
+		optimization = "Оптимизация",
 		version = "v26.2.2.0 Beta",
 		build = "Сборка: beta (modular)",
 		language = "Язык / Language",
 		theme = "Тема оформления",
 		dark = "Тёмная",
 		light = "Светлая",
+		fps = "FPS Boost",
+		graphics = "Качество графики",
+		fog = "Туман",
+		clouds = "Облака",
+		particles = "Частицы",
+		charVis = "Прозрачность персонажа",
+		on = "ВКЛ",
+		off = "ВЫКЛ",
 	},
 	en = {
 		player = "Player",
 		server = "Server",
 		settings = "Settings",
+		optimization = "Optimization",
 		version = "v26.2.2.0 Beta",
 		build = "Build: beta (modular)",
 		language = "Language / Язык",
 		theme = "Theme",
 		dark = "Dark",
 		light = "Light",
+		fps = "FPS Boost",
+		graphics = "Graphics Quality",
+		fog = "Fog",
+		clouds = "Clouds",
+		particles = "Particles",
+		charVis = "Character Transparency",
+		on = "ON",
+		off = "OFF",
 	},
 }
 
@@ -287,8 +305,8 @@ themeRegister(tabsFrame, "BackgroundColor3", "tabsBg")
 
 local function createTab(name, key, index)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1/3, 0, 1, 0)
-	btn.Position = UDim2.new((index-1)/3, 0, 0, 0)
+	btn.Size = UDim2.new(1/4, 0, 1, 0)
+	btn.Position = UDim2.new((index-1)/4, 0, 0, 0)
 	btn.BackgroundTransparency = 1
 	btn.Text = ""
 	btn.TextColor3 = currentTheme.textDim
@@ -324,6 +342,7 @@ end
 local tabPlayer, indPlayer = createTab("Player", "player", 1)
 local tabServer, indServer = createTab("Server", "server", 2)
 local tabSettings, indSettings = createTab("Settings", "settings", 3)
+local tabOptimization, indOptimization = createTab("Optimization", "optimization", 4)
 
 local content = Instance.new("Frame")
 content.Size = UDim2.new(1, 0, 1, -68)
@@ -356,24 +375,29 @@ end
 local framePlayer = createContentFrame()
 local frameServer = createContentFrame()
 local frameSettings = createContentFrame()
+local frameOptimization = createContentFrame()
 
 local function switchTab(tabName)
 	framePlayer.Visible = (tabName == "player")
 	frameServer.Visible = (tabName == "server")
 	frameSettings.Visible = (tabName == "settings")
+	frameOptimization.Visible = (tabName == "optimization")
 
 	indPlayer.Visible = (tabName == "player")
 	indServer.Visible = (tabName == "server")
 	indSettings.Visible = (tabName == "settings")
+	indOptimization.Visible = (tabName == "optimization")
 
 	tabPlayer.TextColor3 = (tabName == "player") and currentTheme.accentBlue or currentTheme.textDim
 	tabServer.TextColor3 = (tabName == "server") and currentTheme.accentBlue or currentTheme.textDim
 	tabSettings.TextColor3 = (tabName == "settings") and currentTheme.accentBlue or currentTheme.textDim
+	tabOptimization.TextColor3 = (tabName == "optimization") and currentTheme.accentBlue or currentTheme.textDim
 end
 
 tabPlayer.MouseButton1Click:Connect(function() switchTab("player") end)
 tabServer.MouseButton1Click:Connect(function() switchTab("server") end)
 tabSettings.MouseButton1Click:Connect(function() switchTab("settings") end)
+tabOptimization.MouseButton1Click:Connect(function() switchTab("optimization") end)
 
 switchTab("player")
 
@@ -413,6 +437,189 @@ loadWidget("widget_safetp.lua", framePlayer)
 loadWidget("widget_farm.lua", frameServer)
 
 loadWidget("widget_checkpoints.lua", frameServer)
+
+-- ==================== OPTIMIZATION TAB ====================
+local optContainer = Instance.new("Frame")
+optContainer.Size = UDim2.new(1, 0, 1, 0)
+optContainer.BackgroundTransparency = 1
+optContainer.Parent = frameOptimization
+
+local function buildOptUI()
+	local optState = {
+		fps = false, fog = false, clouds = false,
+		particles = false, charVis = false, graphics = 3,
+	}
+
+	local function applyOpt(name)
+		if name == "fps" then
+			game:GetService("RunService"):Set3dRenderingEnabled(not optState.fps)
+		elseif name == "fog" then
+			game:GetService("Lighting").FogEnd = optState.fog and 9e9 or 100000
+		elseif name == "clouds" then
+			local t = workspace:FindFirstChildOfClass("Terrain")
+			if t then t.CloudsDisabled = optState.clouds end
+		elseif name == "particles" then
+			settings().Rendering.QualityLevel = optState.particles and Enum.QualityLevel.Level01 or Enum.QualityLevel.Automatic
+		elseif name == "charVis" then
+			local char = player.Character
+			if char then
+				for _, v in ipairs(char:GetDescendants()) do
+					if v:IsA("BasePart") then v.Transparency = optState.charVis and 0.9 or 0 end
+				end
+			end
+		end
+	end
+
+	local function makeToggle(key, name)
+		local f = Instance.new("Frame")
+		f.Size = UDim2.new(1, 0, 0, 44)
+		f.BackgroundColor3 = currentTheme.widgetBg
+		f.BorderSizePixel = 0
+		f.Parent = optContainer
+		Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+		themeRegister(f, "BackgroundColor3", "widgetBg")
+
+		local lbl = Instance.new("TextLabel")
+		lbl.Size = UDim2.new(0, 140, 1, 0)
+		lbl.Position = UDim2.new(0, 10, 0, 0)
+		lbl.BackgroundTransparency = 1
+		lbl.TextColor3 = currentTheme.textMain
+		lbl.TextSize = 13
+		lbl.Font = Enum.Font.Gotham
+		lbl.TextXAlignment = Enum.TextXAlignment.Left
+		lbl.Parent = f
+		langRegister(key, lbl)
+		themeRegister(lbl, "TextColor3", "textMain")
+
+		local stat = Instance.new("TextLabel")
+		stat.Size = UDim2.new(0, 40, 0, 20)
+		stat.Position = UDim2.new(1, -50, 0, 12)
+		stat.BackgroundTransparency = 1
+		stat.Text = currentLang.off
+		stat.TextColor3 = currentTheme.statusOff
+		stat.TextSize = 11
+		stat.Font = Enum.Font.GothamBold
+		stat.Parent = f
+
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(0, 40, 0, 20)
+		btn.Position = UDim2.new(1, -50, 0, 12)
+		btn.BackgroundTransparency = 1
+		btn.Text = ""
+		btn.Parent = f
+		btn.MouseButton1Click:Connect(function()
+			optState[name] = not optState[name]
+			local on = optState[name]
+			stat.Text = on and currentLang.on or currentLang.off
+			stat.TextColor3 = on and currentTheme.statusOn or currentTheme.statusOff
+			btn.BackgroundColor3 = on and currentTheme.btnActiveBg or currentTheme.btnBg
+			applyOpt(name)
+		end)
+	end
+
+	makeToggle("fps", "fps")
+	makeToggle("fog", "fog")
+	makeToggle("clouds", "clouds")
+	makeToggle("particles", "particles")
+	makeToggle("charVis", "charVis")
+
+	-- Graphics slider
+	local gfx = Instance.new("Frame")
+	gfx.Size = UDim2.new(1, 0, 0, 44)
+	gfx.BackgroundColor3 = currentTheme.widgetBg
+	gfx.BorderSizePixel = 0
+	gfx.Parent = optContainer
+	Instance.new("UICorner", gfx).CornerRadius = UDim.new(0, 6)
+	themeRegister(gfx, "BackgroundColor3", "widgetBg")
+
+	local gfxLbl = Instance.new("TextLabel")
+	gfxLbl.Size = UDim2.new(0, 140, 1, 0)
+	gfxLbl.Position = UDim2.new(0, 10, 0, 0)
+	gfxLbl.BackgroundTransparency = 1
+	gfxLbl.TextColor3 = currentTheme.textMain
+	gfxLbl.TextSize = 13
+	gfxLbl.Font = Enum.Font.Gotham
+	gfxLbl.TextXAlignment = Enum.TextXAlignment.Left
+	gfxLbl.Parent = gfx
+	langRegister("graphics", gfxLbl)
+	themeRegister(gfxLbl, "TextColor3", "textMain")
+
+	local gfxVal = Instance.new("TextLabel")
+	gfxVal.Size = UDim2.new(0, 30, 0, 20)
+	gfxVal.Position = UDim2.new(1, -40, 0, 12)
+	gfxVal.BackgroundTransparency = 1
+	gfxVal.Text = tostring(optState.graphics)
+	gfxVal.TextColor3 = currentTheme.accentBlue
+	gfxVal.TextSize = 12
+	gfxVal.Font = Enum.Font.GothamBold
+	gfxVal.Parent = gfx
+
+	local gfxBg = Instance.new("TextButton")
+	gfxBg.Size = UDim2.new(0, 80, 0, 6)
+	gfxBg.Position = UDim2.new(1, -130, 0, 19)
+	gfxBg.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+	gfxBg.BorderSizePixel = 0
+	gfxBg.Text = ""
+	gfxBg.AutoButtonColor = false
+	gfxBg.Parent = gfx
+	Instance.new("UICorner", gfxBg).CornerRadius = UDim.new(0, 3)
+
+	local gfxFill = Instance.new("Frame")
+	gfxFill.Size = UDim2.new(optState.graphics / 10, 0, 1, 0)
+	gfxFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+	gfxFill.BorderSizePixel = 0
+	gfxFill.Parent = gfxBg
+	Instance.new("UICorner", gfxFill).CornerRadius = UDim.new(0, 3)
+
+	gfxBg.MouseButton1Click:Connect(function()
+		local mx = uis:GetMouseLocation().X
+		local posX = gfxBg.AbsolutePosition.X
+		local sizeX = gfxBg.AbsoluteSize.X
+		if sizeX > 0 then
+			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
+			optState.graphics = math.floor(frac * 10)
+			gfxVal.Text = tostring(optState.graphics)
+			gfxFill.Size = UDim2.new(optState.graphics / 10, 0, 1, 0)
+			game:GetService("RunService"):Set3dRenderingEnabled(true)
+			task.wait()
+			local level = math.clamp(optState.graphics, 1, 10)
+			settings().Rendering.QualityLevel = Enum.QualityLevel[("Level%02d"):format(level * 3)] or Enum.QualityLevel.Automatic
+		end
+	end)
+
+	-- Reset button
+	local resetBtn = Instance.new("TextButton")
+	resetBtn.Size = UDim2.new(1, -16, 0, 32)
+	resetBtn.BackgroundColor3 = currentTheme.btnBg
+	resetBtn.Text = "⟲  " .. currentLang.off
+	resetBtn.TextColor3 = currentTheme.textMain
+	resetBtn.TextSize = 14
+	resetBtn.Font = Enum.Font.GothamBold
+	resetBtn.Parent = optContainer
+	Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0, 6)
+	themeRegister(resetBtn, "BackgroundColor3", "btnBg")
+	themeRegister(resetBtn, "TextColor3", "textMain")
+
+	resetBtn.MouseButton1Click:Connect(function()
+		for _, v in ipairs(optContainer:GetChildren()) do v:Destroy() end
+		settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+		game:GetService("Lighting").FogEnd = 100000
+		local t = workspace:FindFirstChildOfClass("Terrain")
+		if t then t.CloudsDisabled = false end
+		local char = player.Character
+		if char then
+			for _, v in ipairs(char:GetDescendants()) do
+				if v:IsA("BasePart") then v.Transparency = 0 end
+			end
+		end
+		game:GetService("RunService"):Set3dRenderingEnabled(true)
+		buildOptUI()
+		addLog("Optimization reset")
+		if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Optimization Reset") end
+	end)
+end
+
+buildOptUI()
 
 -- ==================== SETTINGS TAB ====================
 local function createSettingGroup(titleKey, parent)
