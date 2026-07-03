@@ -413,11 +413,18 @@ local function loadWidget(fileName, container)
 		if success and result then
 			local fn, err = loadstring(result)
 			if fn then
-				local ok, runErr = pcall(fn, container, player, UserInputService, RunService)
-				if ok then
-					addLog("Widget loaded: " .. fileName)
+				local moduleOk, widgetOrErr = pcall(fn)
+				if moduleOk and type(widgetOrErr) == "function" then
+					local ok, runErr = pcall(widgetOrErr, container, player, UserInputService, RunService)
+					if ok then
+						addLog("Widget loaded: " .. fileName)
+					else
+						warn("[N1V1LON] Runtime error in " .. fileName .. ": " .. tostring(runErr))
+					end
+				elseif moduleOk then
+					warn("[N1V1LON] Invalid widget module " .. fileName)
 				else
-					warn("[N1V1LON] Runtime error in " .. fileName .. ": " .. tostring(runErr))
+					warn("[N1V1LON] Runtime error in " .. fileName .. ": " .. tostring(widgetOrErr))
 				end
 			else
 				warn("[N1V1LON] Syntax error in " .. fileName .. ": " .. tostring(err))
@@ -439,6 +446,45 @@ loadWidget("widget_farm.lua", frameServer)
 loadWidget("widget_checkpoints.lua", frameServer)
 
 -- ==================== OPTIMIZATION TAB ====================
+local originalOpt = {
+	fogEnd = game:GetService("Lighting").FogEnd,
+	globalShadows = game:GetService("Lighting").GlobalShadows,
+	quality = settings().Rendering.QualityLevel,
+	particles = {},
+}
+
+local function setClouds(enabled)
+	local terrain = workspace:FindFirstChildOfClass("Terrain")
+	local clouds = terrain and terrain:FindFirstChildOfClass("Clouds")
+	if clouds then clouds.Enabled = enabled end
+end
+
+local function setParticles(enabled)
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
+			if originalOpt.particles[obj] == nil then originalOpt.particles[obj] = obj.Enabled end
+			obj.Enabled = enabled
+		end
+	end
+end
+
+local function resetOptimization()
+	local lighting = game:GetService("Lighting")
+	lighting.FogEnd = originalOpt.fogEnd
+	lighting.GlobalShadows = originalOpt.globalShadows
+	settings().Rendering.QualityLevel = originalOpt.quality
+	setClouds(true)
+	for obj, enabled in pairs(originalOpt.particles) do
+		if obj and obj.Parent then obj.Enabled = enabled end
+	end
+	local char = player.Character
+	if char then
+		for _, v in ipairs(char:GetDescendants()) do
+			if v:IsA("BasePart") then v.Transparency = 0 end
+		end
+	end
+end
+
 local function buildOptUI()
 	for _, v in ipairs(frameOptimization:GetChildren()) do
 		if not v:IsA("UIListLayout") then v:Destroy() end
@@ -450,23 +496,26 @@ local function buildOptUI()
 	}
 
 	local function applyOpt(name)
-		if name == "fps" then
-			game:GetService("RunService"):Set3dRenderingEnabled(not optState.fps)
-		elseif name == "fog" then
-			game:GetService("Lighting").FogEnd = optState.fog and 9e9 or 100000
-		elseif name == "clouds" then
-			local t = workspace:FindFirstChildOfClass("Terrain")
-			if t then t.CloudsDisabled = optState.clouds end
-		elseif name == "particles" then
-			settings().Rendering.QualityLevel = optState.particles and Enum.QualityLevel.Level01 or Enum.QualityLevel.Automatic
-		elseif name == "charVis" then
-			local char = player.Character
-			if char then
-				for _, v in ipairs(char:GetDescendants()) do
-					if v:IsA("BasePart") then v.Transparency = optState.charVis and 0.9 or 0 end
+		pcall(function()
+			local lighting = game:GetService("Lighting")
+			if name == "fps" then
+				lighting.GlobalShadows = not optState.fps
+				settings().Rendering.QualityLevel = optState.fps and Enum.QualityLevel.Level01 or originalOpt.quality
+			elseif name == "fog" then
+				lighting.FogEnd = optState.fog and 9e9 or originalOpt.fogEnd
+			elseif name == "clouds" then
+				setClouds(not optState.clouds)
+			elseif name == "particles" then
+				setParticles(not optState.particles)
+			elseif name == "charVis" then
+				local char = player.Character
+				if char then
+					for _, v in ipairs(char:GetDescendants()) do
+						if v:IsA("BasePart") then v.Transparency = optState.charVis and 0.9 or 0 end
+					end
 				end
 			end
-		end
+		end)
 	end
 
 	local function makeToggle(key, name)
@@ -511,7 +560,6 @@ local function buildOptUI()
 			local on = optState[name]
 			stat.Text = on and currentLang.on or currentLang.off
 			stat.TextColor3 = on and currentTheme.statusOn or currentTheme.statusOff
-			btn.BackgroundColor3 = on and currentTheme.btnActiveBg or currentTheme.btnBg
 			applyOpt(name)
 		end)
 	end
@@ -576,21 +624,17 @@ local function buildOptUI()
 		local sizeX = gfxBg.AbsoluteSize.X
 		if sizeX > 0 then
 			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
-			optState.graphics = math.floor(frac * 10)
+			optState.graphics = math.clamp(math.floor(frac * 10), 1, 10)
 			gfxVal.Text = tostring(optState.graphics)
 			gfxFill.Size = UDim2.new(optState.graphics / 10, 0, 1, 0)
-			game:GetService("RunService"):Set3dRenderingEnabled(true)
-			task.wait()
-			local level = math.clamp(optState.graphics, 1, 10)
-			settings().Rendering.QualityLevel = Enum.QualityLevel[("Level%02d"):format(level * 3)] or Enum.QualityLevel.Automatic
+			settings().Rendering.QualityLevel = Enum.QualityLevel["Level" .. string.format("%02d", optState.graphics)] or Enum.QualityLevel.Automatic
 		end
 	end)
 
-	-- Reset button
 	local resetBtn = Instance.new("TextButton")
 	resetBtn.Size = UDim2.new(1, -16, 0, 32)
 	resetBtn.BackgroundColor3 = currentTheme.btnBg
-	resetBtn.Text = "⟲  Reset"
+	resetBtn.Text = "Reset"
 	resetBtn.TextColor3 = currentTheme.textMain
 	resetBtn.TextSize = 14
 	resetBtn.Font = Enum.Font.GothamBold
@@ -600,17 +644,7 @@ local function buildOptUI()
 	themeRegister(resetBtn, "TextColor3", "textMain")
 
 	resetBtn.MouseButton1Click:Connect(function()
-		settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
-		game:GetService("Lighting").FogEnd = 100000
-		local t = workspace:FindFirstChildOfClass("Terrain")
-		if t then t.CloudsDisabled = false end
-		local char = player.Character
-		if char then
-			for _, v in ipairs(char:GetDescendants()) do
-				if v:IsA("BasePart") then v.Transparency = 0 end
-			end
-		end
-		game:GetService("RunService"):Set3dRenderingEnabled(true)
+		resetOptimization()
 		buildOptUI()
 		addLog("Optimization reset")
 		if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Optimization Reset") end
