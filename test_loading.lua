@@ -417,9 +417,8 @@ end
 -- Load Widgets
 loadWidget("widget_speed.lua", framePlayer)
 loadWidget("widget_infjump.lua", framePlayer)
-loadWidget("widget_highlights.lua", framePlayer)
+loadWidget("widget_esp.lua", framePlayer)
 loadWidget("widget_aimbot.lua", framePlayer)
-loadWidget("widget_safetp.lua", framePlayer)
 loadWidget("widget_farm.lua", frameServer)
 
 loadWidget("widget_checkpoints.lua", frameServer)
