@@ -112,6 +112,7 @@ return function(container, player, uis, rs)
 				local r = c and (c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso"))
 				if r then
 					r.CFrame = entry.cframe
+					if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Teleported to CP #" .. id) end
 				end
 			end
 		end)

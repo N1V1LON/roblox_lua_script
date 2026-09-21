@@ -59,15 +59,40 @@ return function(container, player, uis, rs)
 	spdFill.Parent = spdBg
 	Instance.new("UICorner", spdFill).CornerRadius = UDim.new(0, 3)
 
-	spdBg.MouseButton1Click:Connect(function()
-		local mx = uis:GetMouseLocation().X
+	local function updateSpeedSlider(inputPos)
 		local posX = spdBg.AbsolutePosition.X
 		local sizeX = spdBg.AbsoluteSize.X
 		if sizeX > 0 then
-			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
+			local frac = math.clamp((inputPos.X - posX) / sizeX, 0, 1)
 			speedVal = math.floor(frac * 100 + 16)
 			spdValLabel.Text = tostring(speedVal)
 			spdFill.Size = UDim2.new(frac, 0, 1, 0)
+		end
+	end
+
+	local spdDragging = false
+	local spdMoveConn, spdReleaseConn
+
+	spdBg.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			spdDragging = true
+			updateSpeedSlider(input.Position)
+
+			if spdMoveConn then spdMoveConn:Disconnect() end
+			spdMoveConn = uis.InputChanged:Connect(function(moveInput)
+				if spdDragging and (moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch) then
+					updateSpeedSlider(moveInput.Position)
+				end
+			end)
+
+			if spdReleaseConn then spdReleaseConn:Disconnect() end
+			spdReleaseConn = input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					spdDragging = false
+					if spdMoveConn then spdMoveConn:Disconnect(); spdMoveConn = nil end
+					if spdReleaseConn then spdReleaseConn:Disconnect(); spdReleaseConn = nil end
+				end
+			end)
 		end
 	end)
 
