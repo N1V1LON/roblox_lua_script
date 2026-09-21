@@ -44,9 +44,11 @@ return function(container, player, uis, rs)
 	Instance.new("UICorner", status).CornerRadius = UDim.new(0, 4)
 
 	-- Optimization: Using a throttled loop for scanning
+	local active = true
 	task.spawn(function()
-		while true do
+		while active do
 			task.wait(1)
+			if not active then break end
 			if not state.enabled then continue end
 
 			local char = player.Character
@@ -88,5 +90,11 @@ return function(container, player, uis, rs)
 		state.enabled = not state.enabled
 		status.Text = state.enabled and "ON" or "OFF"
 		status.TextColor3 = state.enabled and Color3.fromRGB(100, 220, 120) or Color3.fromRGB(200, 80, 80)
+		if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Auto-Farm " .. (state.enabled and "ON" or "OFF")) end
+	end)
+
+	table.insert(_G.N1V1LON.cleanup, function()
+		active = false
+		state.enabled = false
 	end)
 end
