@@ -196,7 +196,48 @@ gui.ResetOnSpawn = false
 gui.Parent = pg
 
 -- Message Toast System
+local toastContainer = Instance.new("Frame")
+toastContainer.Name = "ToastContainer"
+toastContainer.Size = UDim2.new(0, 220, 0, 150)
+toastContainer.Position = UDim2.new(0.5, -110, 0.82, 0)
+toastContainer.BackgroundTransparency = 1
+toastContainer.Parent = gui
+
+local toastLayout = Instance.new("UIListLayout")
+toastLayout.SortOrder = Enum.SortOrder.LayoutOrder
+toastLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+toastLayout.Padding = UDim.new(0, 6)
+toastLayout.Parent = toastContainer
+
 _G.N1V1LON.showMsg = function(text)
+	task.spawn(function()
+		local toast = Instance.new("Frame")
+		toast.Size = UDim2.new(1, 0, 0, 30)
+		toast.BackgroundColor3 = currentTheme and currentTheme.widgetBg or Color3.fromRGB(30, 30, 45)
+		toast.BorderSizePixel = 0
+		toast.BackgroundTransparency = 0.2
+		toast.Parent = toastContainer
+		Instance.new("UICorner", toast).CornerRadius = UDim.new(0, 6)
+
+		local toastText = Instance.new("TextLabel")
+		toastText.Size = UDim2.new(1, -12, 1, 0)
+		toastText.Position = UDim2.new(0, 6, 0, 0)
+		toastText.BackgroundTransparency = 1
+		toastText.Text = tostring(text)
+		toastText.TextColor3 = currentTheme and currentTheme.accentBlue or Color3.fromRGB(100, 200, 255)
+		toastText.TextSize = 12
+		toastText.Font = Enum.Font.GothamBold
+		toastText.TextXAlignment = Enum.TextXAlignment.Center
+		toastText.Parent = toast
+
+		task.wait(2.5)
+		for i = 1, 10 do
+			toast.BackgroundTransparency = 0.2 + (i * 0.08)
+			toastText.TextTransparency = i * 0.1
+			task.wait(0.03)
+		end
+		toast:Destroy()
+	end)
 	return text
 end
 
@@ -419,9 +460,11 @@ loadWidget("widget_speed.lua", framePlayer)
 loadWidget("widget_infjump.lua", framePlayer)
 loadWidget("widget_esp.lua", framePlayer)
 loadWidget("widget_aimbot.lua", framePlayer)
-loadWidget("widget_farm.lua", frameServer)
+loadWidget("widget_highlights.lua", framePlayer)
 
+loadWidget("widget_farm.lua", frameServer)
 loadWidget("widget_checkpoints.lua", frameServer)
+loadWidget("widget_safetp.lua", frameServer)
 
 -- ==================== OPTIMIZATION TAB ====================
 local originalOpt = {
@@ -637,16 +680,41 @@ buildOptUI = function()
 	gfxFill.Parent = gfxBg
 	Instance.new("UICorner", gfxFill).CornerRadius = UDim.new(0, 3)
 
-	gfxBg.MouseButton1Click:Connect(function()
-		local mx = uis:GetMouseLocation().X
+	local function updateGfxSlider(inputPos)
 		local posX = gfxBg.AbsolutePosition.X
 		local sizeX = gfxBg.AbsoluteSize.X
 		if sizeX > 0 then
-			local frac = math.clamp((mx - posX) / sizeX, 0, 1)
+			local frac = math.clamp((inputPos.X - posX) / sizeX, 0, 1)
 			optState.graphics = math.clamp(math.floor(frac * 10), 1, 10)
 			gfxVal.Text = tostring(optState.graphics)
 			gfxFill.Size = UDim2.new(optState.graphics / 10, 0, 1, 0)
 			getEngineSettings().Rendering.QualityLevel = Enum.QualityLevel["Level" .. string.format("%02d", optState.graphics)] or Enum.QualityLevel.Automatic
+		end
+	end
+
+	local gfxDragging = false
+	local gfxMoveConn, gfxReleaseConn
+
+	gfxBg.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			gfxDragging = true
+			updateGfxSlider(input.Position)
+
+			if gfxMoveConn then gfxMoveConn:Disconnect() end
+			gfxMoveConn = UserInputService.InputChanged:Connect(function(moveInput)
+				if gfxDragging and (moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch) then
+					updateGfxSlider(moveInput.Position)
+				end
+			end)
+
+			if gfxReleaseConn then gfxReleaseConn:Disconnect() end
+			gfxReleaseConn = input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					gfxDragging = false
+					if gfxMoveConn then gfxMoveConn:Disconnect(); gfxMoveConn = nil end
+					if gfxReleaseConn then gfxReleaseConn:Disconnect(); gfxReleaseConn = nil end
+				end
+			end)
 		end
 	end)
 

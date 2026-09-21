@@ -239,10 +239,11 @@ return function(container, player, uis, rs)
 	end)
 
 	-- Periodic update to catch new objects
+	local active = true
 	task.spawn(function()
-		while frame and frame.Parent do
+		while active and frame and frame.Parent do
 			task.wait(SCAN_COOLDOWN)
-			if npcOn or itemsOn then
+			if active and (npcOn or itemsOn) then
 				scanWorkspace()
 				if npcOn then updateNPC() end
 				if itemsOn then updateItems() end
@@ -251,7 +252,9 @@ return function(container, player, uis, rs)
 	end)
 
 	table.insert(_G.N1V1LON.cleanup, function()
+		active = false
 		clearHighlights(npcHighlights)
 		clearHighlights(itemHighlights)
 	end)
+
 end
