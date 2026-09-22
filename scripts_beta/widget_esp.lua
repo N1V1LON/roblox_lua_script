@@ -144,6 +144,18 @@ return function(container, player, uis, rs)
 		end
 	end
 
+	-- P (Player) / N (NPC) / I (Item) Overlay Legend
+	local pniLegend = Instance.new("TextLabel")
+	pniLegend.Size = UDim2.new(1, -12, 0, 16)
+	pniLegend.Position = UDim2.new(0, 6, 0, 34)
+	pniLegend.BackgroundTransparency = 1
+	pniLegend.Text = "P: Player  |  N: NPC  |  I: Items"
+	pniLegend.TextColor3 = Color3.fromRGB(100, 200, 255)
+	pniLegend.TextSize = 10
+	pniLegend.Font = Enum.Font.GothamBold
+	pniLegend.TextXAlignment = Enum.TextXAlignment.Left
+	pniLegend.Parent = btn
+
 	btn.MouseButton1Click:Connect(function()
 		espOn = not espOn
 		if espOn then
@@ -151,11 +163,13 @@ return function(container, player, uis, rs)
 			espStatus.TextColor3 = Color3.fromRGB(60, 200, 120)
 			if espConn then espConn:Disconnect() end
 			espConn = rs.RenderStepped:Connect(updateESP)
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("ESP & Radar (P/N/I) Enabled") end
 		else
 			espStatus.Text = "OFF"
 			espStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
 			if espConn then espConn:Disconnect(); espConn = nil end
 			clearESP()
+			if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("ESP Disabled") end
 		end
 	end)
 

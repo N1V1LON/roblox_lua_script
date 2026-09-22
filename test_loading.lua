@@ -195,6 +195,7 @@ if existing then existing:Destroy() end
 local gui = Instance.new("ScreenGui")
 gui.Name = "N1V1LON_BETA"
 gui.ResetOnSpawn = false
+gui.DisplayOrder = 999999
 gui.Parent = pg
 
 -- Message Toast System
@@ -261,22 +262,22 @@ local betaTag = Instance.new("TextLabel")
 betaTag.Size = UDim2.new(0, 14, 0, 14)
 betaTag.Position = UDim2.new(1, -14, 1, -14)
 betaTag.BackgroundTransparency = 1
-betaTag.Text = "β"
+betaTag.Text = "™"
 betaTag.TextColor3 = Color3.fromRGB(100, 200, 255)
 betaTag.TextSize = 11
 betaTag.Font = Enum.Font.GothamBold
 betaTag.Parent = icon
 
--- Main Menu
+-- Main Menu (9:16 Aspect Ratio)
 local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 320, 0, 420)
-menu.Position = UDim2.new(0.5, -160, 0.5, -210)
+menu.Size = UDim2.new(0, 290, 0, 515)
+menu.Position = UDim2.new(0.5, -145, 0.5, -257)
 menu.BackgroundColor3 = currentTheme.menuBg
 menu.BorderSizePixel = 0
 menu.Visible = false
 menu.ClipsDescendants = true
 menu.Parent = gui
-Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 12)
 themeRegister(menu, "BackgroundColor3", "menuBg")
 
 -- Title Bar
@@ -316,43 +317,31 @@ closeBtn.MouseLeave:Connect(function() closeBtn.BackgroundTransparency = 1 end)
 closeBtn.MouseButton1Click:Connect(function() menu.Visible = false end)
 icon.MouseButton1Click:Connect(function() menu.Visible = not menu.Visible end)
 
--- Tabs System
-local tabsFrame = Instance.new("Frame")
-tabsFrame.Size = UDim2.new(1, 0, 0, 32)
-tabsFrame.Position = UDim2.new(0, 0, 0, 36)
-tabsFrame.BackgroundColor3 = currentTheme.tabsBg
-tabsFrame.BorderSizePixel = 0
-tabsFrame.Parent = menu
-themeRegister(tabsFrame, "BackgroundColor3", "tabsBg")
+-- Sidebar Vertical Navigation (Left)
+local sidebar = Instance.new("Frame")
+sidebar.Size = UDim2.new(0, 75, 1, -36)
+sidebar.Position = UDim2.new(0, 0, 0, 36)
+sidebar.BackgroundColor3 = currentTheme.tabsBg
+sidebar.BorderSizePixel = 0
+sidebar.Parent = menu
+themeRegister(sidebar, "BackgroundColor3", "tabsBg")
 
-local function createTab(name, key, index, totalTabs)
-	totalTabs = totalTabs or 2
+local function createTab(name, key, index)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1 / totalTabs, 0, 1, 0)
-	btn.Position = UDim2.new((index - 1) / totalTabs, 0, 0, 0)
+	btn.Size = UDim2.new(1, 0, 0, 40)
+	btn.Position = UDim2.new(0, 0, 0, (index - 1) * 44)
 	btn.BackgroundTransparency = 1
 	btn.Text = ""
 	btn.TextColor3 = currentTheme.textDim
-	btn.TextSize = 13
+	btn.TextSize = 12
 	btn.Font = Enum.Font.GothamBold
-	btn.Parent = tabsFrame
+	btn.Parent = sidebar
 	langRegister(key, btn)
 	themeRegister(btn, "TextColor3", "textDim")
 
-	btn.MouseEnter:Connect(function()
-		btn.TextColor3 = currentTheme.accentBlue
-	end)
-
 	local indicator = Instance.new("Frame")
-
-	btn.MouseLeave:Connect(function()
-		if not indicator.Visible then
-			btn.TextColor3 = currentTheme.textDim
-		end
-	end)
-
-	indicator.Size = UDim2.new(0.6, 0, 0, 2)
-	indicator.Position = UDim2.new(0.2, 0, 1, -2)
+	indicator.Size = UDim2.new(0, 3, 0.6, 0)
+	indicator.Position = UDim2.new(0, 0, 0.2, 0)
 	indicator.BackgroundColor3 = currentTheme.accentBlue
 	indicator.BorderSizePixel = 0
 	indicator.Visible = false
@@ -362,12 +351,13 @@ local function createTab(name, key, index, totalTabs)
 	return btn, indicator
 end
 
-local tabHome, indHome = createTab("Home", "home", 1, 2)
-local tabSettings, indSettings = createTab("Settings", "settings", 2, 2)
+local tabHome, indHome = createTab("Home", "home", 1)
+local tabSettings, indSettings = createTab("Settings", "settings", 2)
 
+-- Content Frame (Right side)
 local content = Instance.new("Frame")
-content.Size = UDim2.new(1, 0, 1, -68)
-content.Position = UDim2.new(0, 0, 0, 68)
+content.Size = UDim2.new(1, -75, 1, -36)
+content.Position = UDim2.new(0, 75, 0, 36)
 content.BackgroundTransparency = 1
 content.Parent = menu
 
