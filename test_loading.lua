@@ -396,10 +396,6 @@ end
 local frameHome = createContentFrame()
 local frameSettings = createContentFrame()
 
-local framePlayer = frameHome
-local frameServer = frameHome
-local frameOptimization = frameSettings
-
 local function switchTab(tabName)
 	frameHome.Visible = (tabName == "home")
 	frameSettings.Visible = (tabName == "settings")
@@ -416,10 +412,129 @@ tabSettings.MouseButton1Click:Connect(function() switchTab("settings") end)
 
 switchTab("home")
 
--- ==================== MODULAR LOADING ====================
+-- ==================== GLOBAL MODULES (UI COMPONENTS) ====================
+local GlobalModules = {}
+
+function GlobalModules.createCard(parent, titleText)
+	local f = Instance.new("Frame")
+	f.Size = UDim2.new(1, 0, 0, 48)
+	f.BackgroundColor3 = currentTheme.widgetBg
+	f.BorderSizePixel = 0
+	f.Parent = parent
+	Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+	themeRegister(f, "BackgroundColor3", "widgetBg")
+
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.new(0, 140, 0, 20)
+	lbl.Position = UDim2.new(0, 10, 0, 4)
+	lbl.BackgroundTransparency = 1
+	lbl.Text = "  " .. titleText
+	lbl.TextColor3 = currentTheme.textMain
+	lbl.TextSize = 13
+	lbl.Font = Enum.Font.Gotham
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.Parent = f
+	themeRegister(lbl, "TextColor3", "textMain")
+
+	return f
+end
+
+function GlobalModules.createToggle(card, onToggle)
+	local stat = Instance.new("TextButton")
+	stat.Size = UDim2.new(0, 50, 0, 20)
+	stat.Position = UDim2.new(1, -55, 0, 4)
+	stat.BackgroundTransparency = 1
+	stat.Text = currentLang.off
+	stat.TextColor3 = currentTheme.statusOff
+	stat.TextSize = 12
+	stat.Font = Enum.Font.GothamBold
+	stat.Parent = card
+	themeRegister(stat, "TextColor3", "statusOff")
+
+	local state = false
+	stat.MouseButton1Click:Connect(function()
+		state = not state
+		stat.Text = state and currentLang.on or currentLang.off
+		stat.TextColor3 = state and currentTheme.statusOn or currentTheme.statusOff
+		if onToggle then onToggle(state) end
+	end)
+	return stat
+end
+
+function GlobalModules.createSlider(card, minVal, maxVal, defaultVal, onChange)
+	local valLbl = Instance.new("TextLabel")
+	valLbl.Size = UDim2.new(0, 40, 0, 20)
+	valLbl.Position = UDim2.new(1, -100, 0, 4)
+	valLbl.BackgroundTransparency = 1
+	valLbl.Text = tostring(defaultVal)
+	valLbl.TextColor3 = currentTheme.accentBlue
+	valLbl.TextSize = 12
+	valLbl.Font = Enum.Font.GothamBold
+	valLbl.Parent = card
+
+	local bg = Instance.new("TextButton")
+	bg.Size = UDim2.new(1, -20, 0, 10)
+	bg.Position = UDim2.new(0, 10, 0, 28)
+	bg.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+	bg.BorderSizePixel = 0
+	bg.Text = ""
+	bg.AutoButtonColor = false
+	bg.Parent = card
+	Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 3)
+
+	local fill = Instance.new("Frame")
+	local initialFrac = math.clamp((defaultVal - minVal) / (maxVal - minVal), 0, 1)
+	fill.Size = UDim2.new(initialFrac, 0, 1, 0)
+	fill.BackgroundColor3 = currentTheme.accentBlue
+	fill.BorderSizePixel = 0
+	fill.Parent = bg
+	Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 3)
+
+	local function updateSlider(inputPos)
+		local posX = bg.AbsolutePosition.X
+		local sizeX = bg.AbsoluteSize.X
+		if sizeX > 0 then
+			local frac = math.clamp((inputPos.X - posX) / sizeX, 0, 1)
+			local curVal = math.floor(minVal + frac * (maxVal - minVal))
+			valLbl.Text = tostring(curVal)
+			fill.Size = UDim2.new(frac, 0, 1, 0)
+			if onChange then onChange(curVal) end
+		end
+	end
+
+	local dragging = false
+	local moveConn, releaseConn
+
+	bg.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			updateSlider(input.Position)
+
+			if moveConn then moveConn:Disconnect() end
+			moveConn = UserInputService.InputChanged:Connect(function(moveInput)
+				if dragging and (moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch) then
+					updateSlider(moveInput.Position)
+				end
+			end)
+
+			if releaseConn then releaseConn:Disconnect() end
+			releaseConn = input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+					if moveConn then moveConn:Disconnect(); moveConn = nil end
+					if releaseConn then releaseConn:Disconnect(); releaseConn = nil end
+				end
+			end)
+		end
+	end)
+end
+
+-- ==================== GLOBAL SCRIPTS (FEATURE LOGIC CONTROLLERS) ====================
+local GlobalScripts = {}
+
 local baseUrl = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/scripts_beta/"
 
-local function loadWidget(fileName, container)
+function GlobalScripts.loadWidgetModule(fileName, container)
 	task.spawn(function()
 		local success, result = pcall(function()
 			return game:HttpGet(baseUrl .. fileName, true)
@@ -450,16 +565,15 @@ local function loadWidget(fileName, container)
 	end)
 end
 
--- Load Widgets
-loadWidget("widget_speed.lua", framePlayer)
-loadWidget("widget_infjump.lua", framePlayer)
-loadWidget("widget_esp.lua", framePlayer)
-loadWidget("widget_aimbot.lua", framePlayer)
-loadWidget("widget_highlights.lua", framePlayer)
-
-loadWidget("widget_farm.lua", frameServer)
-loadWidget("widget_checkpoints.lua", frameServer)
-loadWidget("widget_safetp.lua", frameServer)
+-- Load Widgets into Global Home tab via GlobalScripts
+GlobalScripts.loadWidgetModule("widget_speed.lua", frameHome)
+GlobalScripts.loadWidgetModule("widget_infjump.lua", frameHome)
+GlobalScripts.loadWidgetModule("widget_esp.lua", frameHome)
+GlobalScripts.loadWidgetModule("widget_aimbot.lua", frameHome)
+GlobalScripts.loadWidgetModule("widget_highlights.lua", frameHome)
+GlobalScripts.loadWidgetModule("widget_farm.lua", frameHome)
+GlobalScripts.loadWidgetModule("widget_checkpoints.lua", frameHome)
+GlobalScripts.loadWidgetModule("widget_safetp.lua", frameHome)
 
 -- ==================== OPTIMIZATION TAB ====================
 local originalOpt = {
@@ -511,13 +625,13 @@ end
 local buildOptUI
 
 local function refreshOptimizationUI()
-	if frameOptimization and frameOptimization.Parent then
+	if frameSettings and frameSettings.Parent then
 		buildOptUI()
 	end
 end
 
 buildOptUI = function()
-	for _, v in ipairs(frameOptimization:GetChildren()) do
+	for _, v in ipairs(frameSettings:GetChildren()) do
 		if not v:IsA("UIListLayout") then v:Destroy() end
 	end
 
@@ -554,7 +668,7 @@ buildOptUI = function()
 		f.Size = UDim2.new(1, 0, 0, 44)
 		f.BackgroundColor3 = currentTheme.widgetBg
 		f.BorderSizePixel = 0
-		f.Parent = frameOptimization
+		f.Parent = frameSettings
 		Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
 		themeRegister(f, "BackgroundColor3", "widgetBg")
 
@@ -632,7 +746,7 @@ buildOptUI = function()
 	gfx.Size = UDim2.new(1, 0, 0, 44)
 	gfx.BackgroundColor3 = currentTheme.widgetBg
 	gfx.BorderSizePixel = 0
-	gfx.Parent = frameOptimization
+	gfx.Parent = frameSettings
 	Instance.new("UICorner", gfx).CornerRadius = UDim.new(0, 6)
 	themeRegister(gfx, "BackgroundColor3", "widgetBg")
 
@@ -720,7 +834,7 @@ buildOptUI = function()
 	resetBtn.TextColor3 = currentTheme.textMain
 	resetBtn.TextSize = 14
 	resetBtn.Font = Enum.Font.GothamBold
-	resetBtn.Parent = frameOptimization
+	resetBtn.Parent = frameSettings
 	Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0, 6)
 	themeRegister(resetBtn, "BackgroundColor3", "btnBg")
 	themeRegister(resetBtn, "TextColor3", "textMain")
