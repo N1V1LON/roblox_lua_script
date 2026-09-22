@@ -93,12 +93,13 @@ end
 -- ==================== I18N ====================
 local T = {
 	ru = {
+		home = "Home",
+		settings = "Settings",
 		player = "Игрок",
 		server = "Сервер",
-		settings = "Настройки",
 		optimization = "Оптимизация",
-		version = "v26.2.2.0 Beta",
-		build = "Сборка: beta (modular)",
+		version = "v26.3.0.0 Global",
+		build = "Сборка: Global Delta Universal",
 		language = "Язык / Language",
 		theme = "Тема оформления",
 		dark = "Тёмная",
@@ -114,12 +115,13 @@ local T = {
 		off = "ВЫКЛ",
 	},
 	en = {
+		home = "Home",
+		settings = "Settings",
 		player = "Player",
 		server = "Server",
-		settings = "Settings",
 		optimization = "Optimization",
-		version = "v26.2.2.0 Beta",
-		build = "Build: beta (modular)",
+		version = "v26.3.0.0 Global",
+		build = "Build: Global Delta Universal",
 		language = "Language / Язык",
 		theme = "Theme",
 		dark = "Dark",
@@ -323,14 +325,15 @@ tabsFrame.BorderSizePixel = 0
 tabsFrame.Parent = menu
 themeRegister(tabsFrame, "BackgroundColor3", "tabsBg")
 
-local function createTab(name, key, index)
+local function createTab(name, key, index, totalTabs)
+	totalTabs = totalTabs or 2
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1/4, 0, 1, 0)
-	btn.Position = UDim2.new((index-1)/4, 0, 0, 0)
+	btn.Size = UDim2.new(1 / totalTabs, 0, 1, 0)
+	btn.Position = UDim2.new((index - 1) / totalTabs, 0, 0, 0)
 	btn.BackgroundTransparency = 1
 	btn.Text = ""
 	btn.TextColor3 = currentTheme.textDim
-	btn.TextSize = 12
+	btn.TextSize = 13
 	btn.Font = Enum.Font.GothamBold
 	btn.Parent = tabsFrame
 	langRegister(key, btn)
@@ -359,10 +362,8 @@ local function createTab(name, key, index)
 	return btn, indicator
 end
 
-local tabPlayer, indPlayer = createTab("Player", "player", 1)
-local tabServer, indServer = createTab("Server", "server", 2)
-local tabSettings, indSettings = createTab("Settings", "settings", 3)
-local tabOptimization, indOptimization = createTab("Optimization", "optimization", 4)
+local tabHome, indHome = createTab("Home", "home", 1, 2)
+local tabSettings, indSettings = createTab("Settings", "settings", 2, 2)
 
 local content = Instance.new("Frame")
 content.Size = UDim2.new(1, 0, 1, -68)
@@ -392,34 +393,28 @@ local function createContentFrame()
 	return f
 end
 
-local framePlayer = createContentFrame()
-local frameServer = createContentFrame()
+local frameHome = createContentFrame()
 local frameSettings = createContentFrame()
-local frameOptimization = createContentFrame()
+
+local framePlayer = frameHome
+local frameServer = frameHome
+local frameOptimization = frameSettings
 
 local function switchTab(tabName)
-	framePlayer.Visible = (tabName == "player")
-	frameServer.Visible = (tabName == "server")
+	frameHome.Visible = (tabName == "home")
 	frameSettings.Visible = (tabName == "settings")
-	frameOptimization.Visible = (tabName == "optimization")
 
-	indPlayer.Visible = (tabName == "player")
-	indServer.Visible = (tabName == "server")
+	indHome.Visible = (tabName == "home")
 	indSettings.Visible = (tabName == "settings")
-	indOptimization.Visible = (tabName == "optimization")
 
-	tabPlayer.TextColor3 = (tabName == "player") and currentTheme.accentBlue or currentTheme.textDim
-	tabServer.TextColor3 = (tabName == "server") and currentTheme.accentBlue or currentTheme.textDim
+	tabHome.TextColor3 = (tabName == "home") and currentTheme.accentBlue or currentTheme.textDim
 	tabSettings.TextColor3 = (tabName == "settings") and currentTheme.accentBlue or currentTheme.textDim
-	tabOptimization.TextColor3 = (tabName == "optimization") and currentTheme.accentBlue or currentTheme.textDim
 end
 
-tabPlayer.MouseButton1Click:Connect(function() switchTab("player") end)
-tabServer.MouseButton1Click:Connect(function() switchTab("server") end)
+tabHome.MouseButton1Click:Connect(function() switchTab("home") end)
 tabSettings.MouseButton1Click:Connect(function() switchTab("settings") end)
-tabOptimization.MouseButton1Click:Connect(function() switchTab("optimization") end)
 
-switchTab("player")
+switchTab("home")
 
 -- ==================== MODULAR LOADING ====================
 local baseUrl = "https://raw.githubusercontent.com/N1V1LON/roblox_lua_script/main/scripts_beta/"
@@ -701,7 +696,7 @@ buildOptUI = function()
 			updateGfxSlider(input.Position)
 
 			if gfxMoveConn then gfxMoveConn:Disconnect() end
-			gfxMoveConn = UserInputService.InputChanged:Connect(function(moveInput)
+			gfxMoveConn = uis.InputChanged:Connect(function(moveInput)
 				if gfxDragging and (moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch) then
 					updateGfxSlider(moveInput.Position)
 				end
