@@ -6,14 +6,14 @@ return function(container, player, uis, rs)
 	local drawingOk = pcall(function() return Drawing.new("Square") end)
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 0, 52)
+	frame.Size = UDim2.new(1, 0, 0, 44)
 	frame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	frame.BorderSizePixel = 0
 	frame.Parent = container
 	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(0, 140, 0, 24)
+	title.Size = UDim2.new(0, 140, 0, 20)
 	title.Position = UDim2.new(0, 8, 0, 4)
 	title.BackgroundTransparency = 1
 	title.Text = "  ESP"
@@ -25,7 +25,7 @@ return function(container, player, uis, rs)
 
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(0, 50, 0, 20)
-	btn.Position = UDim2.new(1, -55, 0, 6)
+	btn.Position = UDim2.new(1, -55, 0, 4)
 	btn.BackgroundTransparency = 1
 	btn.Text = ""
 	btn.Parent = frame
@@ -158,8 +158,8 @@ return function(container, player, uis, rs)
 
 	-- P (Player) / N (NPC) / I (Item) Overlay Legend
 	local pniLegend = Instance.new("TextLabel")
-	pniLegend.Size = UDim2.new(1, -16, 0, 18)
-	pniLegend.Position = UDim2.new(0, 8, 0, 28)
+	pniLegend.Size = UDim2.new(1, -16, 0, 14)
+	pniLegend.Position = UDim2.new(0, 8, 0, 26)
 	pniLegend.BackgroundTransparency = 1
 	pniLegend.Text = "P: Player  |  N: NPC  |  I: Items"
 	pniLegend.TextColor3 = Color3.fromRGB(100, 200, 255)

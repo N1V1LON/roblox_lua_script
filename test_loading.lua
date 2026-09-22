@@ -271,9 +271,10 @@ betaTag.Font = Enum.Font.GothamBold
 betaTag.Parent = icon
 
 -- Main Menu (9:16 Aspect Ratio)
+-- Main Menu (Compact Responsive Bounds)
 local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 290, 0, 515)
-menu.Position = UDim2.new(0.5, -145, 0.5, -257)
+menu.Size = UDim2.new(0.85, 0, 0.7, 0)
+menu.Position = UDim2.new(0.075, 0, 0.15, 0)
 menu.BackgroundColor3 = currentTheme.menuBg
 menu.BorderSizePixel = 0
 menu.Visible = false
@@ -281,6 +282,11 @@ menu.ClipsDescendants = true
 menu.Parent = gui
 Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 12)
 themeRegister(menu, "BackgroundColor3", "menuBg")
+
+local menuConstraint = Instance.new("UISizeConstraint")
+menuConstraint.MaxSize = Vector2.new(310, 390)
+menuConstraint.MinSize = Vector2.new(240, 280)
+menuConstraint.Parent = menu
 
 -- Title Bar
 local titleBar = Instance.new("Frame")

@@ -5,7 +5,7 @@ return function(container, player, uis, rs)
 	local speedHeartbeat = nil
 
 	local spdBtn = Instance.new("Frame")
-	spdBtn.Size = UDim2.new(1, 0, 0, 48)
+	spdBtn.Size = UDim2.new(1, 0, 0, 44)
 	spdBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	spdBtn.BorderSizePixel = 0
 	spdBtn.Parent = container

@@ -11,7 +11,7 @@ return function(container, player, uis, rs)
 	local SCAN_COOLDOWN = 5 -- Scan every 5 seconds
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 0, 68)
+	frame.Size = UDim2.new(1, 0, 0, 56)
 	frame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	frame.BorderSizePixel = 0
 	frame.Parent = container

@@ -31,7 +31,7 @@ return function(container, player, uis, rs)
 	end
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 0, 40)
+	frame.Size = UDim2.new(1, 0, 0, 36)
 	frame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	frame.BorderSizePixel = 0
 	frame.Parent = container
