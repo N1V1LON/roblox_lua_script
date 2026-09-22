@@ -15,11 +15,11 @@ return function(container, player, uis, rs)
 	}
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, 0, 0, 100)
+	frame.Size = UDim2.new(1, 0, 0, 36)
 	frame.BackgroundColor3 = Color3.fromRGB(30, 35, 30)
 	frame.BorderSizePixel = 0
 	frame.Parent = container
-	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
 
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -16, 0, 24)

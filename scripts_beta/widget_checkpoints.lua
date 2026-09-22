@@ -3,7 +3,7 @@ return function(container, player, uis, rs)
 	local checkpoints = {}
 
 	local cpFrame = Instance.new("Frame")
-	cpFrame.Size = UDim2.new(1, 0, 0, 120)
+	cpFrame.Size = UDim2.new(1, 0, 0, 95)
 	cpFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	cpFrame.BorderSizePixel = 0
 	cpFrame.Parent = container

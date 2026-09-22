@@ -5,7 +5,7 @@ return function(container, player, uis, rs)
 	local jumpReqConn = nil
 
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, 0, 0, 32)
+	btn.Size = UDim2.new(1, 0, 0, 36)
 	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 	btn.BorderSizePixel = 0
 	btn.Text = "  Infinite Jump"
