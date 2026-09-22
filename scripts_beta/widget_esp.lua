@@ -5,21 +5,33 @@ return function(container, player, uis, rs)
 
 	local drawingOk = pcall(function() return Drawing.new("Square") end)
 
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 0, 52)
+	frame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	frame.BorderSizePixel = 0
+	frame.Parent = container
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(0, 140, 0, 24)
+	title.Position = UDim2.new(0, 8, 0, 4)
+	title.BackgroundTransparency = 1
+	title.Text = "  ESP"
+	title.TextColor3 = Color3.fromRGB(200, 200, 220)
+	title.TextSize = 13
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Font = Enum.Font.Gotham
+	title.Parent = frame
+
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, 0, 0, 32)
-	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-	btn.BorderSizePixel = 0
-	btn.Text = "  ESP"
-	btn.TextColor3 = Color3.fromRGB(200, 200, 220)
-	btn.TextSize = 13
-	btn.TextXAlignment = Enum.TextXAlignment.Left
-	btn.Font = Enum.Font.Gotham
-	btn.Parent = container
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+	btn.Size = UDim2.new(0, 50, 0, 20)
+	btn.Position = UDim2.new(1, -55, 0, 6)
+	btn.BackgroundTransparency = 1
+	btn.Text = ""
+	btn.Parent = frame
 
 	local espStatus = Instance.new("TextLabel")
-	espStatus.Size = UDim2.new(0, 50, 1, 0)
-	espStatus.Position = UDim2.new(1, -55, 0, 0)
+	espStatus.Size = UDim2.new(1, 0, 1, 0)
 	espStatus.BackgroundTransparency = 1
 	espStatus.Text = "OFF"
 	espStatus.TextColor3 = Color3.fromRGB(140, 60, 60)
@@ -146,15 +158,15 @@ return function(container, player, uis, rs)
 
 	-- P (Player) / N (NPC) / I (Item) Overlay Legend
 	local pniLegend = Instance.new("TextLabel")
-	pniLegend.Size = UDim2.new(1, -12, 0, 16)
-	pniLegend.Position = UDim2.new(0, 6, 0, 34)
+	pniLegend.Size = UDim2.new(1, -16, 0, 18)
+	pniLegend.Position = UDim2.new(0, 8, 0, 28)
 	pniLegend.BackgroundTransparency = 1
 	pniLegend.Text = "P: Player  |  N: NPC  |  I: Items"
 	pniLegend.TextColor3 = Color3.fromRGB(100, 200, 255)
 	pniLegend.TextSize = 10
 	pniLegend.Font = Enum.Font.GothamBold
 	pniLegend.TextXAlignment = Enum.TextXAlignment.Left
-	pniLegend.Parent = btn
+	pniLegend.Parent = frame
 
 	btn.MouseButton1Click:Connect(function()
 		espOn = not espOn

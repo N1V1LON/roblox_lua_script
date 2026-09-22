@@ -94,11 +94,12 @@ end
 local T = {
 	ru = {
 		home = "Home",
+		checking = "Checking",
 		settings = "Settings",
 		player = "Игрок",
 		server = "Сервер",
 		optimization = "Оптимизация",
-		version = "v26.3.0.0 Global",
+		version = "v26.3.1.0 Global",
 		build = "Сборка: Global Delta Universal",
 		language = "Язык / Language",
 		theme = "Тема оформления",
@@ -116,11 +117,12 @@ local T = {
 	},
 	en = {
 		home = "Home",
+		checking = "Checking",
 		settings = "Settings",
 		player = "Player",
 		server = "Server",
 		optimization = "Optimization",
-		version = "v26.3.0.0 Global",
+		version = "v26.3.1.0 Global",
 		build = "Build: Global Delta Universal",
 		language = "Language / Язык",
 		theme = "Theme",
@@ -352,7 +354,8 @@ local function createTab(name, key, index)
 end
 
 local tabHome, indHome = createTab("Home", "home", 1)
-local tabSettings, indSettings = createTab("Settings", "settings", 2)
+local tabChecking, indChecking = createTab("Checking", "checking", 2)
+local tabSettings, indSettings = createTab("Settings", "settings", 3)
 
 -- Content Frame (Right side)
 local content = Instance.new("Frame")
@@ -384,20 +387,25 @@ local function createContentFrame()
 end
 
 local frameHome = createContentFrame()
+local frameChecking = createContentFrame()
 local frameSettings = createContentFrame()
 
 local function switchTab(tabName)
 	frameHome.Visible = (tabName == "home")
+	frameChecking.Visible = (tabName == "checking")
 	frameSettings.Visible = (tabName == "settings")
 
 	indHome.Visible = (tabName == "home")
+	indChecking.Visible = (tabName == "checking")
 	indSettings.Visible = (tabName == "settings")
 
 	tabHome.TextColor3 = (tabName == "home") and currentTheme.accentBlue or currentTheme.textDim
+	tabChecking.TextColor3 = (tabName == "checking") and currentTheme.accentBlue or currentTheme.textDim
 	tabSettings.TextColor3 = (tabName == "settings") and currentTheme.accentBlue or currentTheme.textDim
 end
 
 tabHome.MouseButton1Click:Connect(function() switchTab("home") end)
+tabChecking.MouseButton1Click:Connect(function() switchTab("checking") end)
 tabSettings.MouseButton1Click:Connect(function() switchTab("settings") end)
 
 switchTab("home")
@@ -564,6 +572,24 @@ GlobalScripts.loadWidgetModule("widget_highlights.lua", frameHome)
 GlobalScripts.loadWidgetModule("widget_farm.lua", frameHome)
 GlobalScripts.loadWidgetModule("widget_checkpoints.lua", frameHome)
 GlobalScripts.loadWidgetModule("widget_safetp.lua", frameHome)
+
+-- Build Checking Tab Controls (Anti-Rollback, Speed Spoofing, Server Detection)
+do
+	local speedCard = GlobalModules.createCard(frameChecking, "Speed Spoofing")
+	GlobalModules.createToggle(speedCard, function(enabled)
+		if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Speed Spoofing " .. (enabled and "ON" or "OFF")) end
+	end)
+
+	local tpCard = GlobalModules.createCard(frameChecking, "TP Rollback Protection")
+	GlobalModules.createToggle(tpCard, function(enabled)
+		if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Safe TP Anti-Rollback " .. (enabled and "ON" or "OFF")) end
+	end)
+
+	local detectCard = GlobalModules.createCard(frameChecking, "Anti-Kick Check Monitor")
+	GlobalModules.createToggle(detectCard, function(enabled)
+		if _G.N1V1LON.showMsg then _G.N1V1LON.showMsg("Server Detection Monitor " .. (enabled and "ON" or "OFF")) end
+	end)
+end
 
 -- ==================== OPTIMIZATION TAB ====================
 local originalOpt = {
